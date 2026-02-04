@@ -18,46 +18,22 @@ describe('Server Logic', () => {
     expect(result.labels).toEqual(['Week 1', 'Week 2', 'Week 3', 'Week 4']);
   });
 
-  test('portfolio calculation with sector details', () => {
-    const mockPortfolioData = {
-      stocks: [
-        { symbol: 'AAPL', quantity: 100, purchasePrice: 150, sector: 'Technology' },
-        { symbol: 'MSFT', quantity: 50, purchasePrice: 200, sector: 'Technology' },
-        { symbol: 'JNJ', quantity: 75, purchasePrice: 160, sector: 'Healthcare' }
-      ]
+  test('dividend calculations work correctly', () => {
+    const dividends = {
+      '2022': 1200,
+      '2023': 1800,
+      '2024': 2400
     };
     
-    const totals = {};
-    const stocksBySector = {};
-    let totalValue = 0;
-
-    mockPortfolioData.stocks.forEach(stock => {
-      const value = stock.quantity * stock.purchasePrice;
-      totals[stock.sector] = (totals[stock.sector] || 0) + value;
-      
-      if (!stocksBySector[stock.sector]) {
-        stocksBySector[stock.sector] = [];
-      }
-      stocksBySector[stock.sector].push({
-        symbol: stock.symbol,
-        value: value
-      });
-      
-      totalValue += value;
-    });
-
-    const sectorDetails = {};
-    Object.keys(totals).forEach(sector => {
-      sectorDetails[sector] = stocksBySector[sector].map(stock => ({
-        symbol: stock.symbol,
-        percentage: ((stock.value / totals[sector]) * 100).toFixed(2)
-      }));
-    });
-
-    expect(sectorDetails.Technology).toHaveLength(2);
-    expect(sectorDetails.Technology[0].symbol).toBe('AAPL');
-    expect(sectorDetails.Technology[0].percentage).toBe('60.00');
-    expect(sectorDetails.Healthcare).toHaveLength(1);
-    expect(sectorDetails.Healthcare[0].percentage).toBe('100.00');
+    const monthlyAverages = Object.keys(dividends).map(year => 
+      (dividends[year] / 12).toFixed(2)
+    );
+    const dailyAverages = Object.keys(dividends).map(year => 
+      (dividends[year] / 365).toFixed(2)
+    );
+    
+    expect(monthlyAverages).toEqual(['100.00', '150.00', '200.00']);
+    expect(dailyAverages[0]).toBe('3.29'); // 1200/365
+    expect(dailyAverages[1]).toBe('4.93'); // 1800/365
   });
 });
