@@ -1,0 +1,34 @@
+{
+  "stocks": [
+    {
+      "symbol": "AAPL",
+      "quantity": 100,
+      "purchasePrice": 150.50,
+      "sector": "Technology"
+    },
+    {
+      "symbol": "MSFT",
+      "quantity": 50,
+      "purchasePrice": 280.00,
+      "sector": "Technology"
+    },
+    {
+      "symbol": "JNJ",
+      "quantity": 75,
+      "purchasePrice": 160.00,
+      "sector": "Healthcare"
+    },
+    {
+      "symbol": "JPM",
+      "quantity": 60,
+      "purchasePrice": 140.00,
+      "sector": "Financial"
+    },
+    {
+      "symbol": "XOM",
+      "quantity": 200,
+      "purchasePrice": 45.00,
+      "sector": "Energy"
+    }
+  ]
+}
