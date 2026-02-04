@@ -1,0 +1,112 @@
+<template>
+  <div class="chart-container">
+    <Line :data="chartData" :options="chartOptions" />
+  </div>
+</template>
+
+<script>
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend
+} from 'chart.js'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
+import { Line } from 'vue-chartjs'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, ChartDataLabels)
+
+export default {
+  components: { Line },
+  props: {
+    dividends: {
+      type: Object,
+      default: () => ({})
+    }
+  },
+  computed: {
+    chartData() {
+      if (!Object.keys(this.dividends).length) return { labels: [], datasets: [] }
+      
+      const years = Object.keys(this.dividends).sort()
+      const monthlyAverages = years.map(year => (this.dividends[year] / 12).toFixed(2))
+      const dailyAverages = years.map(year => (this.dividends[year] / 365).toFixed(2))
+      
+      return {
+        labels: years,
+        datasets: [
+          {
+            label: 'Monthly Average',
+            data: monthlyAverages,
+            borderColor: '#36A2EB',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            tension: 0.4,
+            pointRadius: 5,
+            datalabels: {
+              backgroundColor: '#36A2EB',
+              color: 'white',
+              borderRadius: 4,
+              font: { size: 10, weight: 'bold' },
+              formatter: (value) => `£${parseFloat(value).toFixed(0)}`,
+              align: 'top',
+              offset: 8
+            }
+          },
+          {
+            label: 'Daily Average',
+            data: dailyAverages,
+            borderColor: '#FF6384',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            tension: 0.4,
+            pointRadius: 5,
+            datalabels: {
+              backgroundColor: '#FF6384',
+              color: 'white',
+              borderRadius: 4,
+              font: { size: 10, weight: 'bold' },
+              formatter: (value) => `£${parseFloat(value).toFixed(2)}`,
+              align: 'bottom',
+              offset: 8
+            }
+          }
+        ]
+      }
+    },
+    chartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top'
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => `${context.dataset.label}: £${context.parsed.y}`
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => `£${value}`
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+
+<style scoped>
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+}
+</style>

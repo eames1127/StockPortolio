@@ -46,6 +46,7 @@ const loadPortfolio = () => {
   return {
     sectors,
     sectorDetails,
+    dividends: data.dividends || {},
     stockCount: data.stocks.length,
     diversification: Object.keys(totals).length
   };

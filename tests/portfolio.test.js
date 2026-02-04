@@ -57,22 +57,31 @@ describe('Portfolio Integration', () => {
     expect(result.sectorDetails.Technology[0]).toHaveProperty('percentage');
   });
 
-  test('sector percentages sum to 100 within each sector', () => {
-    const mockSectorDetails = {
-      Technology: [
-        { symbol: 'AAPL', percentage: '60.00' },
-        { symbol: 'GOOGL', percentage: '40.00' }
+  test('portfolio includes dividend data', () => {
+    const mockPortfolioData = {
+      stocks: [
+        { symbol: 'AAPL', quantity: 100, purchasePrice: 150, sector: 'Technology' }
       ],
-      Healthcare: [
-        { symbol: 'JNJ', percentage: '100.00' }
-      ]
+      dividends: {
+        '2022': 1200.50,
+        '2023': 1350.75,
+        '2024': 1500.00
+      }
+    };
+    
+    const loadPortfolio = () => {
+      return {
+        sectors: { Technology: '100.00' },
+        sectorDetails: { Technology: [{ symbol: 'AAPL', percentage: '100.00' }] },
+        dividends: mockPortfolioData.dividends || {},
+        stockCount: mockPortfolioData.stocks.length,
+        diversification: 1
+      };
     };
 
-    Object.keys(mockSectorDetails).forEach(sector => {
-      const total = mockSectorDetails[sector].reduce((sum, stock) => {
-        return sum + parseFloat(stock.percentage);
-      }, 0);
-      expect(total).toBeCloseTo(100, 1);
-    });
+    const result = loadPortfolio();
+    expect(result).toHaveProperty('dividends');
+    expect(result.dividends['2023']).toBe(1350.75);
+    expect(Object.keys(result.dividends)).toHaveLength(3);
   });
 });

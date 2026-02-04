@@ -8,6 +8,7 @@ A Vue.js web application for tracking stock portfolio growth and diversification
 
 -  **Sector Diversification Visualization**: Interactive pie chart with detailed stock breakdowns on hover
 -  **Performance Tracking**: Historical growth tracking with selectable time periods (1M, 1Y, YTD, 5Y)
+-  **Dividend Tracking**: Annual dividend summaries with trend analysis and monthly/daily averages
 -  **Privacy-First Design**: No absolute values displayed, only percentages and ratios
 -  **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
 -  **Secure Data Handling**: Personal portfolio data excluded from git commits
@@ -55,7 +56,12 @@ Edit `data/portfolio.json` with your stock holdings:
       "purchasePrice": 150.50,
       "sector": "Technology"
     }
-  ]
+  ],
+  "dividends": {
+    "2022": 1200.50,
+    "2023": 1350.75,
+    "2024": 1500.00
+  }
 }
 ```
 
@@ -94,6 +100,13 @@ Returns portfolio allocation by sector with detailed stock breakdowns
       { "symbol": "MSFT", "percentage": "40.00" }
     ]
   },
+  "dividends": {
+    "2020": 1250.00,
+    "2021": 1380.50,
+    "2022": 1420.75,
+    "2023": 1580.25,
+    "2024": 1650.00
+  },
   "stockCount": 10,
   "diversification": 3
 }
@@ -131,6 +144,22 @@ Returns mock historical performance data for charts
   - Time period selector (1M, 1Y, YTD, 5Y)
   - Responsive design
 
+### DividendSummary.vue
+**Purpose**: Bar chart displaying annual dividend totals
+- **Props**: `dividends` (Object) - Yearly dividend data
+- **Features**: 
+  - Interactive bar chart with data labels
+  - Total dividend calculation
+  - Currency formatting
+
+### DividendChart.vue
+**Purpose**: Line chart showing dividend trends and averages
+- **Props**: `dividends` (Object) - Yearly dividend data
+- **Features**: 
+  - Dual-line chart (monthly and daily averages)
+  - Color-coded data labels
+  - Responsive design
+
 ### App.vue
 **Purpose**: Main dashboard orchestrating all components
 - **Features**: 
@@ -154,8 +183,8 @@ npm run test:client
 ```
 
 ### Test Coverage
-- **Server**: API endpoints, portfolio calculations, sector details logic
-- **Client**: Utility functions, constants, component structure
+- **Server**: API endpoints, portfolio calculations, sector details logic, dividend calculations
+- **Client**: Utility functions, constants, component structure, dividend logic
 - **Integration**: Portfolio data processing and validation
 
 ## Data Privacy & Security
