@@ -202,8 +202,8 @@ main {
 
 .card {
   background: white;
-  border-radius: 12px;
-  padding: 3rem;
+  border-radius: 8px;
+  padding: 1rem;
   box-shadow: 0 8px 32px rgba(0,0,0,0.1);
 }
 
