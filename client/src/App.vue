@@ -6,6 +6,12 @@
     </header>
     <main>
       <div class="dashboard">
+        <div>
+          <div class="about">
+            <h2>About</h2>
+            <p>This dashboard provides insights into your stock portfolio performance, diversification metrics, and dividend income streams, it purposefully does not show total value of portfolio or individual stocks.</p>
+          </div>
+        </div>
         <div class="card performance-card">
           <div class="performance-header">
             <h2>Performance Overview</h2>
@@ -24,7 +30,7 @@
         </div>
         <div class="stats-row">
           <div class="card">
-            <h2>Portfolio Stats</h2>
+            <h3>Portfolio Stats</h3>
             <div class="stats">
               <div class="stat">
                 <span>Total Stocks</span>
@@ -135,6 +141,10 @@ header p {
 
 main {
   padding: 0 2rem 2rem;
+}
+
+.about {
+  color: white
 }
 
 .dashboard {
