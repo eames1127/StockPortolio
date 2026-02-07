@@ -1,6 +1,8 @@
 <template>
-  <div class="chart-container">
-    <Line :data="chartData" :options="chartOptions" />
+  <div class="chart-scroll">
+    <div class="chart-container">
+      <Line :data="chartData" :options="chartOptions" />
+    </div>
   </div>
 </template>
 
@@ -86,9 +88,21 @@ export default {
 </script>
 
 <style scoped>
+.chart-scroll {
+  width: 100%;
+  overflow-x: scroll;              /* 👈 scrolling happens here */
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
 .chart-container {
   position: relative;
   height: 400px;
-  width: 100%;
+  min-width: 600px;              /* 👈 chart gets breathing room */
+}
+
+/* Defensive: prevent canvas shrinkage */
+.chart-container canvas {
+  min-width: 600px;
 }
 </style>
