@@ -13,7 +13,7 @@
           </div>
         </div>
         <div class="card performance-card">
-          <div class="performance-header">
+          <!--<div class="performance-header">
             <h2>Performance Overview</h2>
             <div class="period-selector">
               <button 
@@ -26,18 +26,22 @@
               </button>
             </div>
           </div>
-          <PerformanceChart :data="performanceData" />
+          <PerformanceChart :data="performanceData" />-->
+          <div class="card">
+            <h2>Portfolio Yearly Growth</h2>
+            <TotalGrowth :growth="portfolioData.growth || {}" />
+          </div>
         </div>
         <div class="stats-row">
           <div class="card">
             <h3>Portfolio Stats</h3>
             <div class="stats">
               <div class="stat">
-                <span>Total Stocks</span>
+                <span>Current Total Stocks</span>
                 <span>{{ portfolioData.stockCount || 0 }}</span>
               </div>
               <div class="stat">
-                <span>Sectors</span>
+                <span>Current Sectors</span>
                 <span>{{ portfolioData.diversification || 0 }}</span>
               </div>
               <div class="stat">
@@ -45,12 +49,6 @@
                 <span>{{ bestPerformance }}%</span>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="stats-row">
-          <div class="card">
-          <h2>Portfolio Yearly Growth</h2>
-            <TotalGrowth :growth="portfolioData.growth || {}" />
           </div>
         </div>
         <div class="middle-row">
@@ -90,7 +88,7 @@ export default {
   }),
   computed: {
     bestPerformance() {
-      const values = this.performanceData.data || []
+      const values = Object.values(this.portfolioData.growth || {})
       return values.length ? Math.max(...values).toFixed(2) : '0.00'
     }
   },
