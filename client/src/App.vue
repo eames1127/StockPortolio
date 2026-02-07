@@ -206,7 +206,7 @@ main {
 }
 .middle-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 2rem;
 }
 
@@ -247,12 +247,11 @@ main {
   font-weight: bold;
   color: #333;
 }
-
-@media (max-width: 768px) {
-  .bottom-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+@media (min-width: 1000px) {
+  .middle-row {
+    grid-template-columns: 1fr 1fr; /* 💻 tablet+ */
   }
+
   
   main {
     padding: 0 1rem 1rem;
