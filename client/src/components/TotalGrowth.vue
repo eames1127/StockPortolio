@@ -38,14 +38,14 @@ export default {
         labels: years,
         datasets: [
           {
-            label: 'Yearly Growth',
+            label: 'Growth',
             data: yearlyGrowth,
-            borderColor: '#36A2EB',
+            borderColor: '#4CAF50',
             backgroundColor: 'rgba(54, 162, 235, 0.1)',
             tension: 0.4,
             pointRadius: 5,
             datalabels: {
-              backgroundColor: '#36A2EB',
+              backgroundColor: '#4CAF50',
               color: 'white',
               borderRadius: 4,
               font: { size: 10, weight: 'bold' },
@@ -67,7 +67,7 @@ export default {
           },
           tooltip: {
             callbacks: {
-              label: (context) => `${context.dataset.label}: £${context.parsed.y}`
+              label: (context) => `${context.dataset.label}: ${context.parsed.y}%`
             }
           }
         },
@@ -75,7 +75,7 @@ export default {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: (value) => `£${value}`
+              callback: (value) => `${value}%`
             }
           }
         }

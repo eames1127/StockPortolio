@@ -58,12 +58,12 @@ export default {
           {
             label: 'Daily Average',
             data: dailyAverages,
-            borderColor: '#FF6384',
+            borderColor: '#FF0000',
             backgroundColor: 'rgba(255, 99, 132, 0.1)',
             tension: 0.4,
             pointRadius: 5,
             datalabels: {
-              backgroundColor: '#FF6384',
+              backgroundColor: '#FF0000',
               color: 'white',
               borderRadius: 4,
               font: { size: 10, weight: 'bold' },
