@@ -146,7 +146,7 @@ Returns mock historical performance data for charts
   - Percentage labels on chart slices
   - Responsive design with color-coded sectors
 
-### PerformanceChart.vue
+### PerformanceChart.vue (Currently disabled)
 **Purpose**: Line chart displaying portfolio growth over selectable time periods
 - **Props**: `data` (Object) - Time-series data with labels and values
 - **Features**: 
