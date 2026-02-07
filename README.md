@@ -55,6 +55,7 @@ Edit `data/portfolio.json` with your stock holdings:
       "symbol": "AAPL",
       "quantity": 100,
       "purchasePrice": 150.50,
+      "currentPrice": 180.50,
       "sector": "Technology"
     }
   ],
