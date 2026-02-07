@@ -8,6 +8,7 @@ A Vue.js web application for tracking stock portfolio growth and diversification
 
 -  **Sector Diversification Visualization**: Interactive pie chart with detailed stock breakdowns on hover
 -  **Performance Tracking**: Historical growth tracking with selectable time periods (1M, 1Y, YTD, 5Y)
+-  **Performance Yearly Growth**: Annual portfolio growth analysis.
 -  **Dividend Tracking**: Annual dividend summaries with trend analysis and monthly/daily averages
 -  **Privacy-First Design**: No absolute values displayed, only percentages and ratios
 -  **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
@@ -54,6 +55,7 @@ Edit `data/portfolio.json` with your stock holdings:
       "symbol": "AAPL",
       "quantity": 100,
       "purchasePrice": 150.50,
+      "currentPrice": 180.50,
       "sector": "Technology"
     }
   ],
@@ -61,6 +63,11 @@ Edit `data/portfolio.json` with your stock holdings:
     "2022": 1200.50,
     "2023": 1350.75,
     "2024": 1500.00
+  },
+  "growth": {
+    "2022" : -17.14,
+    "2023" : 30.68,
+    "2024" : -17.76
   }
 }
 ```
@@ -106,6 +113,10 @@ Returns portfolio allocation by sector with detailed stock breakdowns
     "2022": 1420.75,
     "2023": 1580.25,
     "2024": 1650.00
+  },  "growth": {
+    "2022" : -17.14,
+    "2023" : 30.68,
+    "2024" : -17.76
   },
   "stockCount": 10,
   "diversification": 3
@@ -142,6 +153,14 @@ Returns mock historical performance data for charts
   - Smooth line curves with area fill
   - Data point labels showing percentages
   - Time period selector (1M, 1Y, YTD, 5Y)
+  - Responsive design
+
+### TotalGrowth.vue
+**Purpose**: Line chart displaying portfolio growth overtime.
+- **Props**: `data` (Object) - Time-series data with labels and values
+- **Features**: 
+  - Smooth line curves with area fill
+  - Data point labels showing percentages
   - Responsive design
 
 ### DividendSummary.vue

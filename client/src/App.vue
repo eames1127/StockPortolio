@@ -47,6 +47,12 @@
             </div>
           </div>
         </div>
+        <div class="stats-row">
+          <div class="card">
+          <h2>Portfolio Yearly Growth</h2>
+            <TotalGrowth :growth="portfolioData.growth || {}" />
+          </div>
+        </div>
         <div class="middle-row">
           <div class="card">
             <h2>Portfolio Allocation</h2>
@@ -60,7 +66,6 @@
           <h2>Dividend Trends</h2>
           <DividendChart :dividends="portfolioData.dividends || {}" />
         </div>
-
       </div>
     </main>
   </div>
@@ -72,10 +77,11 @@ import SectorChart from './components/SectorChart.vue'
 import PerformanceChart from './components/PerformanceChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
 import DividendChart from './components/DividendChart.vue'
+import TotalGrowth from './components/TotalGrowth.vue'
 import axios from 'axios'
 
 export default {
-  components: { SectorChart, PerformanceChart, DividendSummary, DividendChart },
+  components: { SectorChart, PerformanceChart, DividendSummary, DividendChart, TotalGrowth },
   data: () => ({
     portfolioData: {},
     performanceData: {},
