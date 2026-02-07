@@ -17,7 +17,7 @@ const loadPortfolio = () => {
   let totalValue = 0;
 
   data.stocks.forEach(stock => {
-    const value = stock.quantity * stock.purchasePrice;
+    const value = stock.quantity * stock.currentPrice;
     totals[stock.sector] = (totals[stock.sector] || 0) + value;
     
     if (!stocksBySector[stock.sector]) {
@@ -47,6 +47,7 @@ const loadPortfolio = () => {
     sectors,
     sectorDetails,
     dividends: data.dividends || {},
+    growth: data.growth || {},
     stockCount: data.stocks.length,
     diversification: Object.keys(totals).length
   };
