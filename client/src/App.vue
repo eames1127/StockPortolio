@@ -1,15 +1,26 @@
 <template>
   <div class="app">
     <header>
-      <h1>📈 Stock Portfolio Tracker</h1>
-      <p>Sovereign Fund Inspired Diversification</p>
+      <div class="header-content">
+        <div class="header-left">
+          <h1>📈 Stock Portfolio Tracker</h1>
+          <p>Sovereign Fund Inspired Diversification</p>
+        </div>
+      </div>
     </header>
     <main>
       <div class="dashboard">
         <div>
           <div class="about">
-            <h2>About</h2>
-            <p>This dashboard provides insights into your stock portfolio performance, diversification metrics, and dividend income streams, it purposefully does not show total value of portfolio or individual stocks.</p>
+            <div class="about-header">
+              <h2>About</h2>
+              <div class="about-links">
+                <a href="https://github.com/eames1127/StockPortolio" target="_blank" rel="noopener">GitHub Repo</a>
+                <span class="separator">|</span>
+                <a href="https://daeames.com" target="_blank" rel="noopener">My Portfolio</a>
+              </div>
+            </div>
+            <p>This dashboard provides an insights into my stock portfolio performance, diversification metrics, and dividend income streams, it purposefully does not show total value of portfolio or individual stocks.</p>
           </div>
         </div>
         <div class="card performance-card">
@@ -133,6 +144,42 @@ header {
   color: white;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header-left {
+  text-align: left;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-right a {
+  color: white;
+  text-decoration: none;
+  font-size: 1rem;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.header-right a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.separator {
+  color: white;
+  opacity: 0.6;
+}
+
 header h1 {
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
@@ -149,6 +196,41 @@ main {
 
 .about {
   color: white
+}
+
+.about-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.about-header h2 {
+  margin: 0;
+  color: white;
+}
+
+.about-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.about-links a {
+  color: white;
+  text-decoration: none;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+
+.about-links a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.about-links .separator {
+  color: white;
+  opacity: 0.6;
 }
 
 .dashboard {
