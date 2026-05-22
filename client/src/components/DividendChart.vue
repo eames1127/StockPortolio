@@ -1,7 +1,7 @@
 <template>
   <div class="chart-scroll">
     <div class="chart-container">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>
@@ -27,6 +27,10 @@ export default {
     dividends: {
       type: Object,
       default: () => ({})
+    },
+    darkMode: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
@@ -78,24 +82,43 @@ export default {
       }
     },
     chartOptions() {
+      const textColor = this.darkMode ? '#fff' : '#000'
+
       return {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'top'
+            position: 'top',
+            labels: {
+              color: textColor
+            }
           },
           tooltip: {
+            bodyColor: textColor,
+            titleColor: textColor,
             callbacks: {
               label: (context) => `${context.dataset.label}: £${context.parsed.y}`
             }
           }
         },
         scales: {
+          x: {
+            ticks: {
+              color: textColor
+            },
+            grid: {
+              color: this.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+            }
+          },
           y: {
             beginAtZero: true,
             ticks: {
+              color: textColor,
               callback: (value) => `£${value}`
+            },
+            grid: {
+              color: this.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
             }
           }
         }

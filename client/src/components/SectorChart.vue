@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <Pie :data="chartData" :options="chartOptions" />
+    <Pie :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
@@ -23,12 +23,19 @@ export default {
     data: {
       type: Object,
       default: () => ({})
+    },
+    darkMode: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
+    textColor() {
+      return this.darkMode ? '#e5e7eb' : '#0b1220'
+    },
     chartData() {
       if (!this.data.sectors) return { labels: [], datasets: [] }
-      
+
       return {
         labels: Object.keys(this.data.sectors),
         datasets: [{
@@ -39,6 +46,8 @@ export default {
       }
     },
     chartOptions() {
+      const textColor = this.textColor
+
       return {
         responsive: true,
         maintainAspectRatio: false,
@@ -46,22 +55,23 @@ export default {
           legend: {
             position: 'bottom',
             labels: {
+              color: textColor,
               padding: 20,
               usePointStyle: true
             }
           },
           tooltip: {
+            titleColor: textColor,
+            bodyColor: textColor,
             callbacks: {
-              title: (context) => {
-                return context[0].label
-              },
+              title: (context) => context[0].label,
               label: (context) => {
                 const sectorName = context.label
                 const sectorPercentage = context.parsed
                 const sectorDetails = this.data.sectorDetails?.[sectorName] || []
-                
+
                 let tooltip = [`Sector: ${sectorPercentage}%`]
-                
+
                 if (sectorDetails.length > 0) {
                   tooltip.push('')
                   tooltip.push('Stocks:')
@@ -69,7 +79,7 @@ export default {
                     tooltip.push(`${stock.symbol}: ${stock.percentage}%`)
                   })
                 }
-                
+
                 return tooltip
               }
             }
@@ -90,7 +100,7 @@ export default {
         elements: {
           arc: {
             borderWidth: 2,
-            borderColor: '#fff'
+            borderColor: this.darkMode ? '#0b1220' : '#fff'
           }
         },
         onHover: (event, elements) => {

@@ -1,6 +1,6 @@
 <template>
   <div class="chart-container">
-    <Line :data="chartData" :options="chartOptions" />
+    <Line :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
   </div>
 </template>
 
@@ -25,12 +25,22 @@ export default {
     data: {
       type: Object,
       default: () => ({})
+    },
+    darkMode: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
+    textColor() {
+      return this.darkMode ? '#e5e7eb' : '#0b1220'
+    },
+    gridColor() {
+      return this.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+    },
     chartData() {
       if (!this.data.labels || !this.data.data) return { labels: [], datasets: [] }
-      
+
       return {
         labels: this.data.labels,
         datasets: [{
@@ -47,18 +57,23 @@ export default {
       }
     },
     chartOptions() {
+      const textColor = this.textColor
+      const gridColor = this.gridColor
+
       return {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
+            titleColor: textColor,
+            bodyColor: textColor,
             callbacks: {
               label: (context) => `Growth: ${context.parsed.y}%`
             }
           },
           datalabels: {
-            color: '#333',
+            color: textColor,
             font: {
               weight: 'bold',
               size: 12
@@ -72,13 +87,17 @@ export default {
           y: {
             beginAtZero: true,
             ticks: {
+              color: textColor,
               callback: (value) => `${value}%`
             },
             grid: {
-              color: 'rgba(0,0,0,0.1)'
+              color: gridColor
             }
           },
           x: {
+            ticks: {
+              color: textColor
+            },
             grid: {
               display: false
             }

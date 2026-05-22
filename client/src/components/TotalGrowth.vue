@@ -1,7 +1,7 @@
 <template>
   <div class="chart-scroll">
     <div class="chart-container">
-      <Line :data="chartData" :options="chartOptions" />
+      <Line :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>
@@ -27,15 +27,25 @@ export default {
     growth: {
       type: Object,
       default: () => ({})
+    },
+    darkMode: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
+    textColor() {
+      return this.darkMode ? '#e5e7eb' : '#0b1220'
+    },
+    gridColor() {
+      return this.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+    },
     chartData() {
       if (!Object.keys(this.growth).length) return { labels: [], datasets: [] }
-      
+
       const years = Object.keys(this.growth).sort()
       const yearlyGrowth = years.map(year => (this.growth[year]).toFixed(2))
-      
+
       return {
         labels: years,
         datasets: [
@@ -60,14 +70,22 @@ export default {
       }
     },
     chartOptions() {
+      const textColor = this.textColor
+      const gridColor = this.gridColor
+
       return {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'top'
+            position: 'top',
+            labels: {
+              color: textColor
+            }
           },
           tooltip: {
+            titleColor: textColor,
+            bodyColor: textColor,
             callbacks: {
               label: (context) => `${context.dataset.label}: ${context.parsed.y}%`
             }
@@ -77,7 +95,19 @@ export default {
           y: {
             beginAtZero: true,
             ticks: {
+              color: textColor,
               callback: (value) => `${value}%`
+            },
+            grid: {
+              color: gridColor
+            }
+          },
+          x: {
+            ticks: {
+              color: textColor
+            },
+            grid: {
+              color: gridColor
             }
           }
         }
@@ -90,7 +120,7 @@ export default {
 <style scoped>
 .chart-scroll {
   width: 100%;
-  overflow-x: scroll;              /* 👈 scrolling happens here */
+  overflow-x: scroll;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
 }
@@ -98,10 +128,9 @@ export default {
 .chart-container {
   position: relative;
   height: 400px;
-  min-width: 600px;              /* 👈 chart gets breathing room */
+  min-width: 600px;
 }
 
-/* Defensive: prevent canvas shrinkage */
 .chart-container canvas {
   min-width: 600px;
 }

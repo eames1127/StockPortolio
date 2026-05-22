@@ -2,7 +2,7 @@
   <div class="dividend-summary">
     <h3>Annual Dividends</h3>
     <div class="chart-container">
-      <Bar :data="chartData" :options="chartOptions" />
+      <Bar :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
     </div>
     <div class="total">
       <span>Total: £{{ totalDividends.toFixed(2) }}</span>
@@ -29,6 +29,10 @@ export default {
     dividends: {
       type: Object,
       default: () => ({})
+    },
+    darkMode: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
@@ -52,18 +56,22 @@ export default {
       }
     },
     chartOptions() {
+      const textColor = this.darkMode ? '#e5e7eb' : '#0b1220'
+
       return {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
           tooltip: {
+            titleColor: textColor,
+            bodyColor: textColor,
             callbacks: {
               label: (context) => `£${context.parsed.y.toFixed(2)}`
             }
           },
           datalabels: {
-            color: '#333',
+            color: textColor,
             font: {
               weight: 'bold',
               size: 11
@@ -78,6 +86,7 @@ export default {
           y: {
             beginAtZero: true,
             ticks: {
+              color: textColor,
               callback: (value) => `£${value}`
             }
           }

@@ -1,10 +1,17 @@
 <template>
-  <div class="app">
+  <div class="app" :class="{ dark: darkMode }">
     <header>
       <div class="header-content">
         <div class="header-left">
           <h1>📈 Stock Portfolio Tracker</h1>
           <p>Sovereign Fund Inspired Diversification</p>
+        </div>
+        <div class="header-right">
+          <label class="theme-toggle">
+            <input class="theme-toggle-input" type="checkbox" v-model="darkMode" @change="onToggleDarkMode" aria-label="Toggle dark mode" />
+            <span class="theme-switch" aria-hidden="true"></span>
+            <span class="theme-label">{{ darkMode ? 'Dark' : 'Light' }}</span>
+          </label>
         </div>
       </div>
     </header>
@@ -40,7 +47,7 @@
           <PerformanceChart :data="performanceData" />-->
           <div class="card">
             <h2>Portfolio Yearly Growth</h2>
-            <TotalGrowth :growth="portfolioData.growth || {}" />
+            <TotalGrowth :growth="portfolioData.growth || {}" :dark-mode="darkMode" />
           </div>
         </div>
         <div class="stats-row">
@@ -65,15 +72,15 @@
         <div class="middle-row">
           <div class="card">
             <h2>Portfolio Allocation</h2>
-            <SectorChart :data="portfolioData" />
+            <SectorChart :data="portfolioData" :dark-mode="darkMode" />
           </div>
           <div class="card">
-            <DividendSummary :dividends="portfolioData.dividends || {}" />
+            <DividendSummary :dividends="portfolioData.dividends || {}" :dark-mode="darkMode" />
           </div>
         </div>
         <div class="card dividend-trends-card">
           <h2>Dividend Trends</h2>
-          <DividendChart :dividends="portfolioData.dividends || {}" />
+          <DividendChart :dividends="portfolioData.dividends || {}" :dark-mode="darkMode" />
         </div>
       </div>
     </main>
@@ -91,12 +98,15 @@ import axios from 'axios'
 
 export default {
   components: { SectorChart, PerformanceChart, DividendSummary, DividendChart, TotalGrowth },
-  data: () => ({
-    portfolioData: {},
-    performanceData: {},
-    selectedPeriod: DEFAULT_PERIOD,
-    timePeriods: TIME_PERIODS
-  }),
+  data() {
+    return {
+      portfolioData: {},
+      performanceData: {},
+      selectedPeriod: DEFAULT_PERIOD,
+      timePeriods: TIME_PERIODS,
+      darkMode: false
+    }
+  },
   computed: {
     bestPerformance() {
       const values = Object.values(this.portfolioData.growth || {})
@@ -104,6 +114,12 @@ export default {
     }
   },
   async mounted() {
+    try {
+      const stored = localStorage.getItem('darkMode')
+      this.darkMode = stored === 'true'
+    } catch (e) {
+      // ignore localStorage errors
+    }
     await this.loadData()
   },
   methods: {
@@ -127,6 +143,13 @@ export default {
       } catch (error) {
         console.error('Failed to load performance data:', error)
       }
+    },
+    onToggleDarkMode() {
+      try {
+        localStorage.setItem('darkMode', this.darkMode)
+      } catch (e) {
+        // ignore
+      }
     }
   }
 }
@@ -134,8 +157,24 @@ export default {
 
 <style scoped>
 .app {
+  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --bg-gradient-dark: linear-gradient(135deg, #0f172a 0%, #0b1220 100%);
+  --text-color: #0b1220; /* default page text */
+  --muted-color: #6b7280;
+  --card-bg: #ffffff;
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.1);
+
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--bg-gradient);
+  color: var(--text-color);
+}
+
+.app.dark {
+  background: var(--bg-gradient-dark);
+  --text-color: #e5e7eb;
+  --muted-color: #9ca3af;
+  --card-bg: #0b1220;
+  --card-shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
 
 header {
@@ -160,6 +199,59 @@ header {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.theme-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.theme-switch {
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.2s;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
+}
+
+.theme-switch::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.18s ease-in-out;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.theme-toggle-input:checked + .theme-switch {
+  background: #4f46e5;
+}
+
+.theme-toggle-input:checked + .theme-switch::before {
+  transform: translateX(20px);
+}
+
+.theme-label {
+  color: var(--text-color);
+  font-size: 0.95rem;
 }
 
 .header-right a {
@@ -195,7 +287,17 @@ main {
 }
 
 .about {
-  color: white
+  color: var(--text-color);
+}
+
+.app.dark .about,
+.app.dark .about-header h2,
+.app.dark .about-links a,
+.app.dark header p,
+.app.dark header h1,
+.app.dark .about-links .separator,
+.app.dark .separator {
+  color: #d1d5db;
 }
 
 .about-header {
@@ -207,7 +309,7 @@ main {
 
 .about-header h2 {
   margin: 0;
-  color: white;
+  color: var(--text-color);
 }
 
 .about-links {
@@ -217,7 +319,7 @@ main {
 }
 
 .about-links a {
-  color: white;
+  color: var(--text-color);
   text-decoration: none;
   opacity: 0.9;
   transition: opacity 0.2s;
@@ -229,8 +331,8 @@ main {
 }
 
 .about-links .separator {
-  color: white;
-  opacity: 0.6;
+  color: var(--muted-color);
+  opacity: 0.8;
 }
 
 .dashboard {
@@ -297,15 +399,21 @@ main {
 }
 
 .card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 1rem;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  box-shadow: var(--card-shadow);
+}
+
+.app.dark .card {
+  background: #0b1220;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  color: #e5e7eb;
 }
 
 .card h2 {
   margin-bottom: 1.5rem;
-  color: #333;
+  color: var(--text-color);
   font-size: 1.5rem;
 }
 
@@ -324,10 +432,14 @@ main {
   font-weight: 500;
 }
 
+.app.dark .stat {
+  background: #071028;
+}
+
 .stat span:last-child {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #333;
+  color: var(--text-color);
 }
 @media (min-width: 1000px) {
   .middle-row {
