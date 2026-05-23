@@ -50,10 +50,14 @@ const loadPortfolio = () => {
       const currentValue = isPence
         ? (stock.quantity * stock.currentPrice) / 100
         : stock.quantity * stock.currentPrice;
+      const costBasis = isPence
+        ? (stock.quantity * stock.purchasePrice) / 100
+        : stock.quantity * stock.purchasePrice;
       return {
         symbol: stock.symbol,
         annualDividend: stock.annualDividend,
-        currentValue
+        currentValue,
+        costBasis
       };
     });
 

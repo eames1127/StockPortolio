@@ -12,7 +12,7 @@
     <div v-if="sortedYields.length" class="yield-section">
       <div class="yield-header">
         <h4>Dividend Yield per Holding</h4>
-        <span class="yield-subtitle">Annual dividend ÷ current value</span>
+        <span class="yield-subtitle">Sorted by current yield</span>
       </div>
       <div class="yield-table-wrapper">
         <table class="yield-table">
@@ -21,6 +21,7 @@
               <th>Symbol</th>
               <th>Annual Div.</th>
               <th>Yield</th>
+              <th>Yield on Cost</th>
               <th class="yield-bar-col"></th>
             </tr>
           </thead>
@@ -30,6 +31,11 @@
               <td class="amount">£{{ holding.annualDividend.toFixed(2) }}</td>
               <td class="yield-pct" :class="yieldClass(holding.yield)">
                 {{ holding.yield.toFixed(2) }}%
+              </td>
+              <td class="yield-pct yoc" :class="yocClass(holding.yield, holding.yoc)">
+                {{ holding.yoc.toFixed(2) }}%
+                <span v-if="holding.yoc > holding.yield" class="yoc-badge">↑</span>
+                <span v-else-if="holding.yoc < holding.yield" class="yoc-badge down">↓</span>
               </td>
               <td class="yield-bar-col">
                 <div class="yield-bar-track">
@@ -44,6 +50,7 @@
           </tbody>
         </table>
       </div>
+      <p class="yield-note">Yield on Cost ↑ means you're earning more than today's buyers</p>
     </div>
   </div>
 </template>
@@ -68,7 +75,6 @@ export default {
       type: Object,
       default: () => ({})
     },
-    // Array of { symbol, annualDividend, currentValue }
     dividendYields: {
       type: Array,
       default: () => []
@@ -84,10 +90,11 @@ export default {
     },
     sortedYields() {
       return this.dividendYields
-        .filter(h => h.currentValue > 0)
+        .filter(h => h.currentValue > 0 && h.costBasis > 0)
         .map(h => ({
           ...h,
-          yield: (h.annualDividend / h.currentValue) * 100
+          yield: (h.annualDividend / h.currentValue) * 100,
+          yoc: (h.annualDividend / h.costBasis) * 100
         }))
         .sort((a, b) => b.yield - a.yield)
     },
@@ -152,11 +159,15 @@ export default {
     barWidth(yieldPct) {
       return `${Math.min((yieldPct / this.maxYield) * 100, 100)}%`
     },
-    // low < 2%, mid 2–5%, high > 5%
     yieldClass(yieldPct) {
       if (yieldPct >= 5) return 'high'
       if (yieldPct >= 2) return 'mid'
       return 'low'
+    },
+    yocClass(yieldPct, yoc) {
+      // If YoC beats current yield, always show green regardless of absolute level
+      if (yoc > yieldPct) return 'high'
+      return this.yieldClass(yoc)
     }
   }
 }
@@ -225,10 +236,6 @@ export default {
   background: rgba(0,0,0,0.04);
 }
 
-.app.dark .yield-table thead tr {
-  background: rgba(255,255,255,0.05);
-}
-
 .yield-table th {
   padding: 0.5rem 0.75rem;
   text-align: left;
@@ -270,6 +277,22 @@ export default {
 .yield-pct.mid  { color: #d97706; }
 .yield-pct.low  { color: var(--muted-color, #6b7280); }
 
+.yoc {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.yoc-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.yoc-badge.down {
+  color: #dc2626;
+}
+
 /* Mini bar */
 .yield-bar-col {
   width: 100%;
@@ -292,4 +315,10 @@ export default {
 .yield-bar-fill.high { background: #16a34a; }
 .yield-bar-fill.mid  { background: #d97706; }
 .yield-bar-fill.low  { background: #9ca3af; }
+
+.yield-note {
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--muted-color, #6b7280);
+}
 </style>
