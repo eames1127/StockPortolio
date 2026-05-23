@@ -75,7 +75,7 @@
             <SectorChart :data="portfolioData" :dark-mode="darkMode" />
           </div>
           <div class="card">
-            <DividendSummary :dividends="portfolioData.dividends || {}" :dark-mode="darkMode" />
+            <DividendSummary :dividends="portfolioData.dividends || {}" :dividend-yields="portfolioData.dividendYields || []" :dark-mode="darkMode" />
           </div>
         </div>
         <div class="card dividend-trends-card">

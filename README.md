@@ -8,8 +8,9 @@ A Vue.js web application for tracking stock portfolio growth and diversification
 
 -  **Sector Diversification Visualization**: Interactive pie chart with detailed stock breakdowns on hover
 -  **Performance Tracking**: Historical growth tracking with selectable time periods (1M, 1Y, YTD, 5Y)
--  **Performance Yearly Growth**: Annual portfolio growth analysis.
+-  **Performance Yearly Growth**: Annual portfolio growth analysis
 -  **Dividend Tracking**: Annual dividend summaries with trend analysis and monthly/daily averages
+-  **Dividend Yield per Holding**: Current yield % and yield on cost % per stock, colour-coded with directional indicators
 -  **Privacy-First Design**: No absolute values displayed, only percentages and ratios
 -  **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
 -  **Secure Data Handling**: Personal portfolio data excluded from git commits
@@ -33,7 +34,6 @@ A Vue.js web application for tracking stock portfolio growth and diversification
 ### 1. Install Dependencies
 
 ```bash
-# Install root dependencies
 npm run install-all
 ```
 
@@ -42,7 +42,6 @@ npm run install-all
 Copy the template and add your personal stock data:
 
 ```bash
-# Copy template to create your personal portfolio file
 cp data/portfolio.template.json data/portfolio.json
 ```
 
@@ -56,6 +55,7 @@ Edit `data/portfolio.json` with your stock holdings:
       "quantity": 100,
       "purchasePrice": 150.50,
       "currentPrice": 180.50,
+      "annualDividend": 220.24,
       "sector": "Technology"
     }
   ],
@@ -65,14 +65,18 @@ Edit `data/portfolio.json` with your stock holdings:
     "2024": 1500.00
   },
   "growth": {
-    "2022" : -17.14,
-    "2023" : 30.68,
-    "2024" : -17.76
+    "2022": -17.14,
+    "2023": 30.68,
+    "2024": -17.76
   }
 }
 ```
 
 **Supported Sectors**: Technology, Healthcare, Financial, Energy, Consumer, Industrial, Utilities, Materials
+
+> **Dividend fields**: Only include `annualDividend` on stocks that pay a dividend. This should be the **total pounds received** for that holding in the year, not a per-share figure. Stocks without this field are excluded from the yield table automatically.
+
+> **UK stocks (LSE)**: Symbols ending in `.l` are automatically detected as priced in pence. Both current yield and yield on cost are adjusted accordingly — no manual conversion needed.
 
 ### 3. Start the Application
 
@@ -113,11 +117,16 @@ Returns portfolio allocation by sector with detailed stock breakdowns
     "2022": 1420.75,
     "2023": 1580.25,
     "2024": 1650.00
-  },  "growth": {
-    "2022" : -17.14,
-    "2023" : 30.68,
-    "2024" : -17.76
   },
+  "growth": {
+    "2022": -17.14,
+    "2023": 30.68,
+    "2024": -17.76
+  },
+  "dividendYields": [
+    { "symbol": "XOM", "annualDividend": 768.00, "currentValue": 18100.00 },
+    { "symbol": "JNJ", "annualDividend": 693.75, "currentValue": 12412.50 }
+  ],
   "stockCount": 10,
   "diversification": 3
 }
@@ -156,20 +165,24 @@ Returns mock historical performance data for charts
   - Responsive design
 
 ### TotalGrowth.vue
-**Purpose**: Line chart displaying portfolio growth overtime.
-- **Props**: `data` (Object) - Time-series data with labels and values
+**Purpose**: Line chart displaying portfolio growth over time
+- **Props**: `growth` (Object) - Yearly growth percentage data
 - **Features**: 
   - Smooth line curves with area fill
   - Data point labels showing percentages
   - Responsive design
 
 ### DividendSummary.vue
-**Purpose**: Bar chart displaying annual dividend totals
-- **Props**: `dividends` (Object) - Yearly dividend data
+**Purpose**: Bar chart displaying annual dividend totals plus a yield-per-holding table
+- **Props**: 
+  - `dividends` (Object) - Yearly dividend totals
+  - `dividendYields` (Array) - Per-stock `{ symbol, annualDividend, currentValue, costBasis }` from the API
 - **Features**: 
   - Interactive bar chart with data labels
   - Total dividend calculation
-  - Currency formatting
+  - Yield per holding table sorted highest to lowest, colour-coded: green ≥5%, amber 2–5%, grey <2%
+  - Yield on Cost column showing return relative to purchase price, with ↑/↓ indicator vs current yield
+  - Only dividend-paying stocks are shown
 
 ### DividendChart.vue
 **Purpose**: Line chart showing dividend trends and averages
@@ -182,9 +195,17 @@ Returns mock historical performance data for charts
 ### App.vue
 **Purpose**: Main dashboard orchestrating all components
 - **Features**: 
-  - Responsive grid layout with performance chart as hero element
+  - Responsive grid layout
   - Data fetching with error handling
   - Time period state management
+
+## Yield on Cost
+
+Yield on Cost (YoC) shows the dividend return relative to what you originally paid, rather than the current market price. A ↑ indicator means your YoC exceeds the current yield — you bought at a better price than today's buyers are getting. A ↓ means the stock has appreciated to the point where your entry price gives a lower yield than current market.
+
+Random Example:
+- **Current yield**: £220.24 / £5,982 (6034 × 99.15p) = **3.68%**
+- **Yield on cost**: £220.24 / £3,834 (6034 × 63.56p) = **5.74% ↑**
 
 ## Testing
 
@@ -218,6 +239,7 @@ npm run test:client
 **Performance data is currently simulated**. The application:
 - ✅ Calculates real portfolio allocation from your stock data
 - ✅ Shows accurate sector diversification and stock breakdowns
+- ✅ Shows dividend yield and yield on cost from your actual stock data
 - ❌ Uses mock historical performance data for charts
 - ❌ Does not connect to live stock price APIs
 
@@ -226,7 +248,7 @@ To integrate real performance data, replace the `generatePerformance()` function
 ## Customization
 
 ### Adding New Stocks
-Update the `data/portfolio.json` file:
+Update `data/portfolio.json`. Include `annualDividend` (total £ received) only for stocks that pay one:
 ```json
 {
   "stocks": [
@@ -234,7 +256,16 @@ Update the `data/portfolio.json` file:
       "symbol": "TSLA",
       "quantity": 50,
       "purchasePrice": 800.00,
+      "currentPrice": 850.00,
       "sector": "Technology"
+    },
+    {
+     "symbol": "JNJ",
+      "quantity": 30,
+      "purchasePrice": 160.00,
+      "currentPrice": 165.50,
+      "sector": "Healthcare",
+      "annualDividend": 4.76
     }
   ]
 }
@@ -263,7 +294,15 @@ Replace mock data in `data/performance.js` and update `generatePerformance()` in
 
 1. **Invalid Stock Data Format**
    - Ensure JSON is valid in `data/portfolio.json`
-   - Required fields: symbol, quantity, purchasePrice, sector
+   - Required fields: `symbol`, `quantity`, `purchasePrice`, `currentPrice`, `sector`
+   - Optional field: `annualDividend` (total £ received, dividend-paying stocks only)
+
+2. **Dividend yield table not appearing**
+   - Check that at least one stock in `portfolio.json` has an `annualDividend` field greater than 0
+   - Verify `/api/portfolio` response includes a `dividendYields` array with `costBasis` present
+
+3. **UK stock yields look wrong**
+   - Ensure LSE symbols end in `.l` (e.g. `Lloy.l`) so pence-to-pounds conversion is applied
 
 ### Development Tips
 
