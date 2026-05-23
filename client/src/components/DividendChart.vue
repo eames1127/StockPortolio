@@ -131,18 +131,24 @@ export default {
 <style scoped>
 .chart-scroll {
   width: 100%;
-  overflow-x: scroll;
+  max-width: 100%;
+  overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  /* prevent scroll container from stretching parent */
+  min-width: 0;
 }
 
 .chart-container {
   position: relative;
-  height: 400px;
-  min-width: 600px;
+  height: 300px;
+  min-width: 500px;
 }
 
-.chart-container canvas {
-  min-width: 600px;
+@media (min-width: 600px) {
+  .chart-container {
+    height: 380px;
+    min-width: 600px;
+  }
 }
 </style>
