@@ -43,11 +43,26 @@ const loadPortfolio = () => {
     }));
   });
 
+  const dividendYields = data.stocks
+    .filter(stock => stock.annualDividend && stock.annualDividend > 0)
+    .map(stock => {
+      const isPence = stock.symbol.toLowerCase().endsWith('.l');
+      const currentValue = isPence
+        ? (stock.quantity * stock.currentPrice) / 100
+        : stock.quantity * stock.currentPrice;
+      return {
+        symbol: stock.symbol,
+        annualDividend: stock.annualDividend,
+        currentValue
+      };
+    });
+
   return {
     sectors,
     sectorDetails,
     dividends: data.dividends || {},
     growth: data.growth || {},
+    dividendYields,
     stockCount: data.stocks.length,
     diversification: Object.keys(totals).length
   };

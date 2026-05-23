@@ -3,52 +3,57 @@
     {
       "symbol": "AAPL",
       "quantity": 100,
-      "purchasePrice": 150.50,
-      "currentPrice" :150.50,
+      "purchasePrice": 150.5,
+      "currentPrice": 150.5,
+      "annualDividend": 140,
       "sector": "Technology"
     },
     {
       "symbol": "MSFT",
       "quantity": 50,
-      "purchasePrice": 280.00,
-      "currentPrice" :280.50,
+      "purchasePrice": 280,
+      "currentPrice": 280.5,
+      "annualDividend": 140,
       "sector": "Technology"
     },
     {
       "symbol": "JNJ",
       "quantity": 75,
-      "purchasePrice": 160.00,
-      "currentPrice" :165.50,
+      "purchasePrice": 160,
+      "currentPrice": 165.5,
+      "annualDividend": 140,
       "sector": "Healthcare"
     },
     {
       "symbol": "JPM",
       "quantity": 60,
-      "purchasePrice": 140.00,
-      "currentPrice" :150.50,
+      "purchasePrice": 140,
+      "currentPrice": 150.5,
+      "annualDividend": 140,
       "sector": "Financial"
     },
     {
       "symbol": "XOM",
       "quantity": 200,
-      "purchasePrice": 45.00,
-      "currentPrice" :90.50,
+      "purchasePrice": 45,
+      "currentPrice": 90.5,
+      "annualDividend": 140,
       "sector": "Energy"
     }
   ],
   "dividends": {
-    "2020": 1250.00,
-    "2021": 1380.50,
+    "2020": 1250,
+    "2021": 1380.5,
     "2022": 1420.75,
     "2023": 1580.25,
-    "2024": 1650.00
+    "2024": 1650
   },
-      "growth": {
-    "2020" : 4.76,
-    "2021" : 11,
-    "2022" : -17.14,
-    "2023" : 30.68,
-    "2024" : -17.76,
-    "2025" : 14.83
+  "growth": {
+    "2020": 4.76,
+    "2021": 11,
+    "2022": -17.14,
+    "2023": 30.68,
+    "2024": -17.76,
+    "2025": 14.83
   }
 }
