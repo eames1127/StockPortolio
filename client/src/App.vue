@@ -1,87 +1,89 @@
 <template>
   <div class="app" :class="{ dark: darkMode }">
-    <header>
-      <div class="header-content">
-        <div class="header-left">
-          <h1>📈 Stock Portfolio Tracker</h1>
-          <p>Sovereign Fund Inspired Diversification</p>
+
+    <!-- ── HEADER ── -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <span class="brand-icon">📈</span>
+          <div class="brand-text">
+            <span class="brand-name">Portfolio Tracker</span>
+            <span class="brand-sub">Sovereign Fund Inspired</span>
+          </div>
         </div>
-        <div class="header-right">
-          <label class="theme-toggle">
-            <input class="theme-toggle-input" type="checkbox" v-model="darkMode" @change="onToggleDarkMode" aria-label="Toggle dark mode" />
-            <span class="theme-switch" aria-hidden="true"></span>
-            <span class="theme-label">{{ darkMode ? 'Dark' : 'Light' }}</span>
-          </label>
-        </div>
+
+        <nav class="topbar-links">
+          <a href="https://github.com/eames1127/StockPortolio" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://daeames.com" target="_blank" rel="noopener">My Portfolio</a>
+        </nav>
+
+        <label class="theme-toggle">
+          <input class="theme-toggle-input" type="checkbox" v-model="darkMode" @change="onToggleDarkMode" aria-label="Toggle dark mode" />
+          <span class="theme-switch" aria-hidden="true"></span>
+          <span class="theme-label">{{ darkMode ? 'Dark' : 'Light' }}</span>
+        </label>
       </div>
     </header>
-    <main>
+
+    <main class="main">
       <div class="dashboard">
-        <div>
-          <div class="about">
-            <div class="about-header">
-              <h2>About</h2>
-              <div class="about-links">
-                <a href="https://github.com/eames1127/StockPortolio" target="_blank" rel="noopener">GitHub Repo</a>
-                <span class="separator">|</span>
-                <a href="https://daeames.com" target="_blank" rel="noopener">My Portfolio</a>
-              </div>
-            </div>
-            <p>This dashboard provides an insights into my stock portfolio performance, diversification metrics, and dividend income streams, it purposefully does not show total value of portfolio or individual stocks.</p>
+
+        <!-- ── ROW 0: About banner ── -->
+        <div class="about-banner">
+          <p>An insight into my stock portfolio performance, diversification metrics, and dividend income streams — purposefully excluding total value or individual stock prices.</p>
+        </div>
+
+        <!-- ── ROW 1: Stat chips ── -->
+        <div class="stat-strip">
+          <div class="stat-chip">
+            <span class="stat-chip-label">Total Holdings</span>
+            <span class="stat-chip-value">{{ portfolioData.stockCount || 0 }}</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label">Sectors</span>
+            <span class="stat-chip-value">{{ portfolioData.diversification || 0 }}</span>
+          </div>
+          <div class="stat-chip accent">
+            <span class="stat-chip-label">Best Year</span>
+            <span class="stat-chip-value">{{ bestPerformance }}%</span>
           </div>
         </div>
-        <div class="card performance-card">
-          <!--<div class="performance-header">
-            <h2>Performance Overview</h2>
-            <div class="period-selector">
-              <button 
-                v-for="period in timePeriods" 
-                :key="period"
-                :class="{ active: selectedPeriod === period }"
-                @click="changePeriod(period)"
-              >
-                {{ period }}
-              </button>
-            </div>
-          </div>
-          <PerformanceChart :data="performanceData" />-->
-          <div class="card">
+
+        <!-- ── ROW 2: Growth chart full width ── -->
+        <div class="card card--growth">
+          <div class="card-head">
             <h2>Portfolio Yearly Growth</h2>
-            <TotalGrowth :growth="portfolioData.growth || {}" :dark-mode="darkMode" />
           </div>
+          <TotalGrowth :growth="portfolioData.growth || {}" :dark-mode="darkMode" />
         </div>
-        <div class="stats-row">
-          <div class="card">
-            <h3>Portfolio Stats</h3>
-            <div class="stats">
-              <div class="stat">
-                <span>Current Total Stocks</span>
-                <span>{{ portfolioData.stockCount || 0 }}</span>
-              </div>
-              <div class="stat">
-                <span>Current Sectors</span>
-                <span>{{ portfolioData.diversification || 0 }}</span>
-              </div>
-              <div class="stat">
-                <span>Best Period</span>
-                <span>{{ bestPerformance }}%</span>
-              </div>
+
+        <!-- ── ROW 3: Allocation | Dividends ── -->
+        <div class="row-split">
+          <div class="card card--allocation">
+            <div class="card-head">
+              <h2>Portfolio Allocation</h2>
             </div>
-          </div>
-        </div>
-        <div class="middle-row">
-          <div class="card">
-            <h2>Portfolio Allocation</h2>
             <SectorChart :data="portfolioData" :dark-mode="darkMode" />
           </div>
-          <div class="card">
-            <DividendSummary :dividends="portfolioData.dividends || {}" :dividend-yields="portfolioData.dividendYields || []" :dark-mode="darkMode" />
+
+          <div class="card card--dividends">
+            <DividendSummary
+              :dividends="portfolioData.dividends || {}"
+              :dividend-yields="portfolioData.dividendYields || []"
+              :dark-mode="darkMode"
+            />
           </div>
         </div>
-        <div class="card dividend-trends-card">
-          <h2>Dividend Trends</h2>
+
+        <!-- ── ROW 4: Dividend Trends ── -->
+        <div class="card card--trends">
+          <div class="card-head">
+            <h2>Dividend Trends</h2>
+            <span class="card-badge">Monthly &amp; Daily averages</span>
+          </div>
           <DividendChart :dividends="portfolioData.dividends || {}" :dark-mode="darkMode" />
         </div>
+
       </div>
     </main>
   </div>
@@ -117,9 +119,7 @@ export default {
     try {
       const stored = localStorage.getItem('darkMode')
       this.darkMode = stored === 'true'
-    } catch (e) {
-      // ignore localStorage errors
-    }
+    } catch (e) {}
     await this.loadData()
   },
   methods: {
@@ -147,66 +147,131 @@ export default {
     onToggleDarkMode() {
       try {
         localStorage.setItem('darkMode', this.darkMode)
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
   }
 }
 </script>
 
 <style scoped>
+/* ─────────────────────────────────────────
+   Design tokens
+───────────────────────────────────────── */
 .app {
-  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --bg-gradient-dark: linear-gradient(135deg, #0f172a 0%, #0b1220 100%);
-  --text-color: #0b1220; /* default page text */
-  --muted-color: #6b7280;
-  --card-bg: #ffffff;
-  --card-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  /* Light */
+  --bg:            #f0f2f8;
+  --bg-card:       #ffffff;
+  --bg-card-alt:   #f8f9fc;
+  --bg-stat:       #eef0f7;
+  --text:          #0d1117;
+  --text-muted:    #6b7280;
+  --border:        rgba(0,0,0,0.07);
+  --shadow:        0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-hover:  0 8px 28px rgba(0,0,0,0.12);
+  --accent:        #22c55e;
+  --accent-dim:    rgba(34,197,94,0.12);
+  --topbar-bg:     #0d1117;
+  --topbar-text:   #f0f2f8;
 
   min-height: 100vh;
-  background: var(--bg-gradient);
-  color: var(--text-color);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  transition: background 0.25s, color 0.25s;
 }
 
+/* Dark overrides */
 .app.dark {
-  background: var(--bg-gradient-dark);
-  --text-color: #e5e7eb;
-  --muted-color: #9ca3af;
-  --card-bg: #0b1220;
-  --card-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  --bg:           #080d14;
+  --bg-card:      #0e1621;
+  --bg-card-alt:  #111a27;
+  --bg-stat:      #131e2d;
+  --text:         #e8edf5;
+  --text-muted:   #8893a5;
+  --border:       rgba(255,255,255,0.06);
+  --shadow:       0 2px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-hover: 0 8px 28px rgba(0,0,0,0.6);
+  --topbar-bg:    #060b11;
+  --topbar-text:  #e8edf5;
 }
 
-header {
-  text-align: center;
-  padding: 2rem;
-  color: white;
+/* ─────────────────────────────────────────
+   Topbar
+───────────────────────────────────────── */
+.topbar {
+  background: var(--topbar-bg);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
+.topbar-inner {
+  max-width: 1280px;
   margin: 0 auto;
-}
-
-.header-left {
-  text-align: left;
-}
-
-.header-right {
+  padding: 0 1.25rem;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.brand-sub {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.02em;
+}
+
+.topbar-links {
+  display: flex;
+  gap: 1.25rem;
+  margin-left: auto;
+}
+
+.topbar-links a {
+  color: rgba(255,255,255,0.55);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.topbar-links a:hover {
+  color: #fff;
+}
+
+/* Theme toggle */
 .theme-toggle {
   display: inline-flex;
-  gap: 0.5rem;
   align-items: center;
-  font-weight: 600;
-  color: var(--text-color);
+  gap: 0.45rem;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .theme-toggle-input {
@@ -214,248 +279,214 @@ header {
   opacity: 0;
   width: 1px;
   height: 1px;
-  overflow: hidden;
 }
 
 .theme-switch {
   display: inline-block;
-  width: 44px;
-  height: 24px;
-  background: #e5e7eb;
+  width: 38px;
+  height: 21px;
+  background: rgba(255,255,255,0.15);
   border-radius: 999px;
   position: relative;
   transition: background 0.2s;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06);
 }
 
 .theme-switch::before {
   content: '';
   position: absolute;
-  left: 4px;
-  top: 4px;
-  width: 16px;
-  height: 16px;
+  left: 3px;
+  top: 3px;
+  width: 15px;
+  height: 15px;
   background: white;
   border-radius: 50%;
-  transition: transform 0.18s ease-in-out;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.18s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 .theme-toggle-input:checked + .theme-switch {
-  background: #4f46e5;
+  background: var(--accent);
 }
 
 .theme-toggle-input:checked + .theme-switch::before {
-  transform: translateX(20px);
+  transform: translateX(17px);
 }
 
 .theme-label {
-  color: var(--text-color);
-  font-size: 0.95rem;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.78rem;
+  font-weight: 500;
 }
 
-.header-right a {
-  color: white;
-  text-decoration: none;
-  font-size: 1rem;
-  opacity: 0.9;
-  transition: opacity 0.2s;
-}
-
-.header-right a:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-
-.separator {
-  color: white;
-  opacity: 0.6;
-}
-
-header h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-}
-
-header p {
-  opacity: 0.9;
-  font-size: 1.1rem;
-}
-
-main {
-  padding: 0 2rem 2rem;
-}
-
-.about {
-  color: var(--text-color);
-}
-
-.app.dark .about,
-.app.dark .about-header h2,
-.app.dark .about-links a,
-.app.dark header p,
-.app.dark header h1,
-.app.dark .about-links .separator,
-.app.dark .separator {
-  color: #d1d5db;
-}
-
-.about-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.about-header h2 {
-  margin: 0;
-  color: var(--text-color);
-}
-
-.about-links {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.about-links a {
-  color: var(--text-color);
-  text-decoration: none;
-  opacity: 0.9;
-  transition: opacity 0.2s;
-}
-
-.about-links a:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-
-.about-links .separator {
-  color: var(--muted-color);
-  opacity: 0.8;
+/* ─────────────────────────────────────────
+   Main layout
+───────────────────────────────────────── */
+.main {
+  padding: 1.25rem 1rem 3rem;
 }
 
 .dashboard {
+  max-width: 1280px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 1.25rem;
 }
 
-.performance-card {
-  width: 100%;
+/* ─────────────────────────────────────────
+   About banner
+───────────────────────────────────────── */
+.about-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
 }
 
-.performance-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.performance-header h2 {
+.about-banner p {
   margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.55;
 }
 
-.period-selector {
+/* ─────────────────────────────────────────
+   Stat strip
+───────────────────────────────────────── */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.stat-chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.3rem;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
-.period-selector button {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
+.stat-chip:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
 }
 
-.period-selector button:hover {
-  background: #f5f5f5;
+.stat-chip.accent {
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }
 
-.period-selector button.active {
-  background: #4CAF50;
-  color: white;
-  border-color: #4CAF50;
+.stat-chip-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
 }
 
-.stats-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-}
-.middle-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
+.stat-chip-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.dividend-trends-card {
-  width: 100%;
+.stat-chip.accent .stat-chip-value {
+  color: var(--accent);
 }
 
+/* ─────────────────────────────────────────
+   Cards
+───────────────────────────────────────── */
 .card {
-  background: var(--card-bg);
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: var(--card-shadow);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-width: 0;
 }
 
-.app.dark .card {
-  background: #0b1220;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-  color: #e5e7eb;
-}
-
-.card h2 {
-  margin-bottom: 1.5rem;
-  color: var(--text-color);
-  font-size: 1.5rem;
-}
-
-.stats {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.stat {
+.card-head {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  font-weight: 500;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
-.app.dark .stat {
-  background: #071028;
+.card-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
 }
 
-.stat span:last-child {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--text-color);
+.card-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-stat);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
 }
-@media (min-width: 1000px) {
-  .middle-row {
-    grid-template-columns: 1fr 1fr; /* 💻 tablet+ */
+
+/* ─────────────────────────────────────────
+   Row 3: split layout
+───────────────────────────────────────── */
+.row-split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* Allocation card stretches to match dividends card on desktop */
+@media (min-width: 1024px) {
+  .row-split {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
   }
 
-  
-  main {
-    padding: 0 1rem 1rem;
+  .card--allocation {
+    display: flex;
+    flex-direction: column;
   }
-  
+}
+
+/* ─────────────────────────────────────────
+   Responsive — tablet+
+───────────────────────────────────────── */
+@media (min-width: 768px) {
+  .main {
+    padding: 1.5rem 1.5rem 3rem;
+  }
+
   .card {
-    padding: 2rem;
+    padding: 1.5rem;
   }
-  
-  header h1 {
+}
+
+@media (min-width: 1024px) {
+  .main {
+    padding: 1.75rem 2rem 3rem;
+  }
+
+  .card-head h2 {
+    font-size: 1.05rem;
+  }
+
+  .stat-chip-value {
     font-size: 2rem;
   }
 }

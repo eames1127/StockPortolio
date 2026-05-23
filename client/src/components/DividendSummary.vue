@@ -174,9 +174,18 @@ export default {
 </script>
 
 <style scoped>
+/* Bridge App.vue tokens → legacy component tokens */
+.dividend-summary {
+  --text-color:    var(--text, #0b1220);
+  --muted-color:   var(--text-muted, #6b7280);
+  --table-bg:      var(--bg-card, #fff);
+  --table-head-bg: var(--bg-stat, #f8f9fc);
+  --table-border:  var(--border, rgba(0,0,0,0.08));
+}
+
 .dividend-summary h3 {
   margin-bottom: 1rem;
-  color: #333;
+  color: var(--text-color);
 }
 
 .chart-container {
@@ -188,12 +197,13 @@ export default {
 
 .total {
   padding: 0.75rem;
-  background: #e9ecef;
+  background: var(--table-head-bg);
   border-radius: 6px;
   text-align: center;
   font-weight: bold;
   font-size: 1.1rem;
-  color: #333;
+  color: var(--text-color);
+  border: 1px solid var(--table-border);
 }
 
 /* Yield section */
@@ -223,39 +233,43 @@ export default {
 .yield-table-wrapper {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid var(--table-border);
+  background: var(--table-bg);
 }
 
 .yield-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+  background: var(--table-bg);
 }
 
 .yield-table thead tr {
-  background: rgba(0,0,0,0.04);
+  background: var(--table-head-bg);
 }
 
 .yield-table th {
   padding: 0.5rem 0.75rem;
   text-align: left;
   font-weight: 600;
-  color: var(--muted-color, #6b7280);
+  color: var(--muted-color);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
+  background: var(--table-head-bg);
 }
 
 .yield-table td {
   padding: 0.55rem 0.75rem;
-  border-top: 1px solid rgba(0,0,0,0.06);
-  color: var(--text-color, #0b1220);
+  border-top: 1px solid var(--table-border);
+  color: var(--text-color);
   white-space: nowrap;
+  background: var(--table-bg);
 }
 
-.yield-table tbody tr:hover {
-  background: rgba(0,0,0,0.02);
+.yield-table tbody tr:hover td {
+  background: var(--table-head-bg);
 }
 
 .symbol {
@@ -300,7 +314,7 @@ export default {
 }
 
 .yield-bar-track {
-  background: rgba(0,0,0,0.07);
+  background: var(--table-border);
   border-radius: 999px;
   height: 6px;
   overflow: hidden;

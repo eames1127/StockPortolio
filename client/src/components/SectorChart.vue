@@ -246,7 +246,14 @@ export default {
 </script>
 
 <style scoped>
+/* Bridge App.vue tokens → component tokens */
 .sector-wrapper {
+  --text-color:   var(--text, #0b1220);
+  --muted-color:  var(--text-muted, #6b7280);
+  --table-bg:     var(--bg-card, #fff);
+  --table-head-bg:var(--bg-stat, #f8f9fc);
+  --table-border: var(--border, rgba(0,0,0,0.08));
+
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -277,7 +284,7 @@ export default {
   gap: 0.5rem;
   font-weight: 700;
   font-size: 0.9rem;
-  color: var(--text-color, #0b1220);
+  color: var(--text-color);
 }
 
 .sector-dot {
@@ -289,12 +296,12 @@ export default {
 
 .clear-btn {
   background: none;
-  border: 1px solid rgba(128,128,128,0.3);
+  border: 1px solid var(--table-border);
   border-radius: 6px;
   padding: 0.2rem 0.6rem;
   font-size: 0.75rem;
   cursor: pointer;
-  color: var(--muted-color, #6b7280);
+  color: var(--muted-color);
   transition: all 0.15s;
 }
 
@@ -306,7 +313,8 @@ export default {
   max-height: 220px;
   overflow-y: auto;
   border-radius: 8px;
-  border: 1px solid rgba(128,128,128,0.15);
+  border: 1px solid var(--table-border);
+  background: var(--table-bg);
   scrollbar-width: thin;
   scrollbar-color: rgba(128,128,128,0.3) transparent;
 }
@@ -315,10 +323,11 @@ export default {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
+  background: var(--table-bg);
 }
 
 .stocks-table thead tr {
-  background: rgba(128,128,128,0.07);
+  background: var(--table-head-bg);
   position: sticky;
   top: 0;
   z-index: 1;
@@ -331,20 +340,21 @@ export default {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted-color, #6b7280);
+  color: var(--muted-color);
   white-space: nowrap;
-  background: inherit;
+  background: var(--table-head-bg);
 }
 
 .stocks-table td {
   padding: 0.45rem 0.75rem;
-  border-top: 1px solid rgba(128,128,128,0.1);
-  color: var(--text-color, #0b1220);
+  border-top: 1px solid var(--table-border);
+  color: var(--text-color);
   white-space: nowrap;
+  background: var(--table-bg);
 }
 
-.stocks-table tbody tr:hover {
-  background: rgba(128,128,128,0.05);
+.stocks-table tbody tr:hover td {
+  background: var(--table-head-bg);
 }
 
 .symbol {
@@ -357,7 +367,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: var(--muted-color, #6b7280);
+  color: var(--muted-color);
   font-size: 0.8rem;
 }
 
