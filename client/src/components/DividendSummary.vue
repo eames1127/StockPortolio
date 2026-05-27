@@ -18,7 +18,7 @@
         <table class="yield-table">
           <thead>
             <tr>
-              <th>Symbol</th>
+              <th>Holding</th>
               <th>Annual Div.</th>
               <th>Yield</th>
               <th>Yield on Cost</th>
@@ -27,7 +27,7 @@
           </thead>
           <tbody>
             <tr v-for="holding in sortedYields" :key="holding.symbol">
-              <td class="symbol">{{ holding.symbol }}</td>
+              <td class="symbol">{{ holding.companyName && holding.companyName !== holding.symbol ? `${holding.companyName} (${holding.symbol})` : holding.symbol }}</td>
               <td class="amount">£{{ holding.annualDividend.toFixed(2) }}</td>
               <td class="yield-pct" :class="yieldClass(holding.yield)">
                 {{ holding.yield.toFixed(2) }}%

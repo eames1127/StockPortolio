@@ -32,6 +32,41 @@
         <div class="about-banner">
           <p>An insight into my stock portfolio performance, diversification metrics, and dividend income streams — purposefully excluding total value or individual stock prices.</p>
         </div>
+        <div v-if="Object.keys(livePrices).length" class="price-bar">
+          <div class="price-ticker">
+            <div
+              v-for="(quote, symbol) in livePrices"
+              :key="symbol"
+              class="price-chip"
+              :class="quote && quote.changePct >= 0 ? 'up' : 'down'"
+            >
+              <span class="price-symbol">{{ formatQuoteLabel(symbol, quote) }}</span>
+              <span v-if="quote" class="price-val">
+                {{ formatPrice(quote.price, quote.currency) }}
+              </span>
+              <span v-if="quote" class="price-change">
+                {{ quote.changePct >= 0 ? '▲' : '▼' }}
+                {{ Math.abs(quote.changePct).toFixed(2) }}%
+              </span>
+              <span v-else class="price-stale">–</span>
+            </div>
+          </div>
+          <div class="price-meta">
+            <span v-if="priceMeta.fetchedAt" class="price-age">
+              Updated {{ timeAgo(priceMeta.fetchedAt) }}
+            </span>
+            <button
+              class="refresh-btn"
+              :class="{ loading: refreshing }"
+              :disabled="refreshing"
+              @click="refreshPrices"
+              title="Force-refresh live prices"
+            >
+              <span class="refresh-icon">⟳</span>
+              {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+            </button>
+          </div>
+        </div>
 
         <!-- ── ROW 1: Stat chips ── -->
         <div class="stat-strip">
@@ -104,9 +139,12 @@ export default {
     return {
       portfolioData: {},
       performanceData: {},
+      livePrices: {},
+      priceMeta: {},
       selectedPeriod: DEFAULT_PERIOD,
       timePeriods: TIME_PERIODS,
-      darkMode: false
+      darkMode: false,
+      refreshing: false
     }
   },
   computed: {
@@ -125,16 +163,39 @@ export default {
   methods: {
     async loadData() {
       try {
-        const [portfolio, performance] = await Promise.all([
+        const [portfolio, performance, prices] = await Promise.all([
           axios.get('/api/portfolio'),
-          axios.get(`/api/performance?period=${this.selectedPeriod}`)
+          axios.get(`/api/performance?period=${this.selectedPeriod}`),
+          axios.get('/api/prices').catch(() => null)
         ])
-        this.portfolioData = portfolio.data
+        this.portfolioData  = portfolio.data
         this.performanceData = performance.data
+        if (prices?.data) {
+          this.livePrices = prices.data.prices || {}
+          this.priceMeta  = prices.data.meta   || {}
+        }
       } catch (error) {
         console.error('Failed to load data:', error)
       }
     },
+
+    async refreshPrices() {
+      this.refreshing = true
+      try {
+        const [pricesRes, portfolioRes] = await Promise.all([
+          axios.post('/api/prices/refresh'),
+          axios.get('/api/portfolio')
+        ])
+        this.livePrices    = pricesRes.data.prices  || {}
+        this.priceMeta     = pricesRes.data.meta    || {}
+        this.portfolioData = portfolioRes.data
+      } catch (err) {
+        console.error('Price refresh failed:', err)
+      } finally {
+        this.refreshing = false
+      }
+    },
+
     async changePeriod(period) {
       this.selectedPeriod = period
       try {
@@ -144,10 +205,34 @@ export default {
         console.error('Failed to load performance data:', error)
       }
     },
+
     onToggleDarkMode() {
       try {
         localStorage.setItem('darkMode', this.darkMode)
       } catch (e) {}
+    },
+
+    /** Format a price in its native currency (pence → pounds for .L tickers) */
+    formatPrice(price, currency) {
+      if (price == null) return '–'
+      if (currency === 'GBP') {
+        return `£${(price / 100).toFixed(2)}`
+      }
+      const symbols = { USD: '$', GBP: '£', EUR: '€' }
+      const sym = symbols[currency] || (currency ? `${currency} ` : '')
+      return `${sym}${price.toFixed(2)}`
+    },
+
+    formatQuoteLabel(symbol, quote) {
+      const name = quote?.longName || quote?.shortName || symbol
+      return name === symbol ? symbol : `${name} (${symbol})`
+    },
+
+    timeAgo(isoString) {
+      const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000)
+      if (diff < 60)   return `${diff}s ago`
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+      return `${Math.floor(diff / 3600)}h ago`
     }
   }
 }
@@ -158,7 +243,6 @@ export default {
    Design tokens
 ───────────────────────────────────────── */
 .app {
-  /* Light */
   --bg:            #f0f2f8;
   --bg-card:       #ffffff;
   --bg-card-alt:   #f8f9fc;
@@ -180,7 +264,6 @@ export default {
   transition: background 0.25s, color 0.25s;
 }
 
-/* Dark overrides */
 .app.dark {
   --bg:           #080d14;
   --bg-card:      #0e1621;
@@ -195,9 +278,7 @@ export default {
   --topbar-text:  #e8edf5;
 }
 
-/* ─────────────────────────────────────────
-   Topbar
-───────────────────────────────────────── */
+/* Topbar */
 .topbar {
   background: var(--topbar-bg);
   border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -317,25 +398,104 @@ export default {
   font-size: 0.78rem;
   font-weight: 500;
 }
-
 /* ─────────────────────────────────────────
-   Main layout
+   Live price bar
 ───────────────────────────────────────── */
-.main {
-  padding: 1.25rem 1rem 3rem;
-}
-
-.dashboard {
-  max-width: 1280px;
-  margin: 0 auto;
+.price-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
   display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  box-shadow: var(--shadow);
 }
 
+.price-ticker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.price-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-chip.up   { background: rgba(34,197,94,0.12);  color: #16a34a; }
+.price-chip.down { background: rgba(239,68,68,0.12);  color: #dc2626; }
+
+.app.dark .price-chip.up   { background: rgba(34,197,94,0.18); }
+.app.dark .price-chip.down { background: rgba(239,68,68,0.18); }
+
+.price-symbol { font-family: monospace; font-size: 0.8rem; color: var(--text); }
+.price-val    { font-variant-numeric: tabular-nums; }
+.price-change { font-size: 0.72rem; opacity: 0.9; }
+.price-stale  { opacity: 0.4; }
+
+.price-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.price-age {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-stat);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.refresh-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.refresh-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.6s;
+}
+.refresh-btn.loading .refresh-icon {
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ─────────────────────────────────────────
-   About banner
+   Main layout (unchanged)
 ───────────────────────────────────────── */
+.main { padding: 1.25rem 1rem 3rem; }
+.dashboard { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
 .about-banner {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -343,151 +503,46 @@ export default {
   border-radius: 8px;
   padding: 0.75rem 1rem;
 }
+.about-banner p { margin: 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
 
-.about-banner p {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  line-height: 1.55;
-}
-
-/* ─────────────────────────────────────────
-   Stat strip
-───────────────────────────────────────── */
-.stat-strip {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
+.stat-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .stat-chip {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  box-shadow: var(--shadow);
-  transition: box-shadow 0.2s, transform 0.2s;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.3rem;
+  box-shadow: var(--shadow); transition: box-shadow 0.2s, transform 0.2s;
 }
+.stat-chip:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.stat-chip.accent { border-color: var(--accent); background: var(--accent-dim); }
+.stat-chip-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+.stat-chip-value { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; letter-spacing: -0.02em; }
+.stat-chip.accent .stat-chip-value { color: var(--accent); }
 
-.stat-chip:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
-}
-
-.stat-chip.accent {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-}
-
-.stat-chip-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-}
-
-.stat-chip-value {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--text);
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-.stat-chip.accent .stat-chip-value {
-  color: var(--accent);
-}
-
-/* ─────────────────────────────────────────
-   Cards
-───────────────────────────────────────── */
 .card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  min-width: 0;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.25rem; box-shadow: var(--shadow); overflow: hidden; min-width: 0;
 }
-
-.card-head {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
-}
-
-.card-head h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.01em;
-}
-
+.card-head { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.25rem; }
+.card-head h2 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
 .card-badge {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  background: var(--bg-stat);
-  border-radius: 4px;
-  padding: 0.15rem 0.45rem;
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted); background: var(--bg-stat); border-radius: 4px; padding: 0.15rem 0.45rem;
 }
 
-/* ─────────────────────────────────────────
-   Row 3: split layout
-───────────────────────────────────────── */
-.row-split {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
-  align-items: start;
-}
+.row-split { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
 
-/* Allocation card stretches to match dividends card on desktop */
 @media (min-width: 1024px) {
-  .row-split {
-    grid-template-columns: 1fr 1fr;
-    align-items: stretch;
-  }
-
-  .card--allocation {
-    display: flex;
-    flex-direction: column;
-  }
+  .row-split { grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .card--allocation { display: flex; flex-direction: column; }
 }
 
-/* ─────────────────────────────────────────
-   Responsive — tablet+
-───────────────────────────────────────── */
 @media (min-width: 768px) {
-  .main {
-    padding: 1.5rem 1.5rem 3rem;
-  }
-
-  .card {
-    padding: 1.5rem;
-  }
+  .main { padding: 1.5rem 1.5rem 3rem; }
+  .card { padding: 1.5rem; }
 }
 
 @media (min-width: 1024px) {
-  .main {
-    padding: 1.75rem 2rem 3rem;
-  }
-
-  .card-head h2 {
-    font-size: 1.05rem;
-  }
-
-  .stat-chip-value {
-    font-size: 2rem;
-  }
+  .main { padding: 1.75rem 2rem 3rem; }
+  .card-head h2 { font-size: 1.05rem; }
+  .stat-chip-value { font-size: 2rem; }
 }
 </style>
