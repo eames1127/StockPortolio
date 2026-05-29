@@ -93,7 +93,7 @@ export default {
         },
         scales: {
           y: {
-            beginAtZero: true,
+            beginAtZero: false,
             ticks: {
               color: textColor,
               callback: (value) => `${value}%`

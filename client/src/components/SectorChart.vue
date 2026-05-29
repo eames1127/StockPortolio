@@ -29,26 +29,28 @@
         <table class="stocks-table">
           <thead>
             <tr>
-              <th>Symbol</th>
+              <th>Holding</th>
               <th>Sector</th>
+              <th>Price</th>
               <th>Allocation</th>
               <th class="bar-col"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="stock in filteredStocks" :key="stock.symbol">
-              <td class="symbol">{{ stock.symbol }}</td>
+              <td class="symbol">{{ stock.companyName && stock.companyName !== stock.symbol ? `${stock.companyName} (${stock.symbol})` : stock.symbol }}</td>
               <td class="sector-label">
                 <span class="dot" :style="{ background: sectorColor(stock.sector) }"></span>
                 {{ stock.sector }}
               </td>
-              <td class="pct">{{ stock.percentage }}%</td>
-              <td class="bar-col">
+              <td class="price">{{ formatPrice(stock.currentPrice, stock.currency) }}</td>
+              <td class="pct" :title="`${stock.sectorPercentage}% of ${stock.sector} sector`">{{ stock.percentage }}%</td>
+              <td class="bar-col" :title="`${stock.sectorPercentage}% of ${stock.sector} sector`">
                 <div class="bar-track">
                   <div
                     class="bar-fill"
                     :style="{
-                      width: barWidth(stock.percentage),
+                      width: barWidth(stock.sectorPercentage),
                       background: sectorColor(stock.sector)
                     }"
                   ></div>
@@ -150,7 +152,8 @@ export default {
                   tooltip.push('')
                   tooltip.push('Stocks:')
                   sectorDetails.forEach(stock => {
-                    tooltip.push(`${stock.symbol}: ${stock.percentage}%`)
+                    const name = stock.companyName || stock.symbol
+                    tooltip.push(`${name === stock.symbol ? stock.symbol : `${name} (${stock.symbol})`}: ${stock.percentage}%`)
                   })
                 }
 
@@ -197,9 +200,9 @@ export default {
       if (!this.selectedSector) return this.allStocks
       return this.allStocks.filter(s => s.sector === this.selectedSector)
     },
-    maxPercentage() {
-      return this.allStocks.length
-        ? Math.max(...this.allStocks.map(s => parseFloat(s.percentage)))
+    maxSectorPercentage() {
+      return this.filteredStocks.length
+        ? Math.max(...this.filteredStocks.map(s => parseFloat(s.sectorPercentage)))
         : 1
     },
     selectedSectorColor() {
@@ -239,7 +242,17 @@ export default {
       return CHART_COLORS[idx] || '#888'
     },
     barWidth(pct) {
-      return `${Math.min((parseFloat(pct) / this.maxPercentage) * 100, 100)}%`
+      return `${Math.min((parseFloat(pct) / this.maxSectorPercentage) * 100, 100)}%`
+    },
+    formatPrice(price, currency) {
+      if (price == null) return '–'
+      const fmt = (n) => parseFloat(n.toFixed(4)).toString()
+      if (currency === 'GBp') {
+        return `£${fmt(price / 100)}`
+      }
+      const symbols = { USD: '$', GBP: '£', EUR: '€' }
+      const sym = symbols[currency] || (currency ? `${currency} ` : '')
+      return `${sym}${fmt(price)}`
     }
   }
 }
@@ -310,7 +323,6 @@ export default {
 }
 
 .stocks-table-wrapper {
-  max-height: 220px;
   overflow-y: auto;
   border-radius: 8px;
   border: 1px solid var(--table-border);
@@ -381,6 +393,12 @@ export default {
 .pct {
   font-weight: 600;
   min-width: 48px;
+}
+
+.price {
+  text-align: right;
+  min-width: 90px;
+  color: var(--text-color);
 }
 
 .bar-col {

@@ -40,7 +40,9 @@ describe('Portfolio Integration', () => {
         
         sectorDetails[sector] = stocksBySector[sector].map(stock => ({
           symbol: stock.symbol,
-          percentage: ((stock.value / totals[sector]) * 100).toFixed(2)
+          percentage: ((stock.value / totals[sector]) * 100).toFixed(2),
+          currentPrice: 150,
+          currency: 'GBP'
         }));
       });
 
@@ -55,6 +57,8 @@ describe('Portfolio Integration', () => {
     expect(result.sectorDetails.Healthcare).toHaveLength(1);
     expect(result.sectorDetails.Technology[0]).toHaveProperty('symbol');
     expect(result.sectorDetails.Technology[0]).toHaveProperty('percentage');
+    expect(result.sectorDetails.Technology[0]).toHaveProperty('currentPrice');
+    expect(result.sectorDetails.Technology[0]).toHaveProperty('currency');
   });
 
   test('portfolio includes dividend data', () => {

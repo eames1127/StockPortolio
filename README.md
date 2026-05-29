@@ -254,6 +254,7 @@ Update `data/portfolio.json`. Include `annualDividend` (total £ received) only 
   "stocks": [
     {
       "symbol": "TSLA",
+      "name" : "Stock Name",
       "quantity": 50,
       "purchasePrice": 800.00,
       "currentPrice": 850.00,
@@ -261,6 +262,7 @@ Update `data/portfolio.json`. Include `annualDividend` (total £ received) only 
     },
     {
      "symbol": "JNJ",
+      "name" : "Stock Name",
       "quantity": 30,
       "purchasePrice": 160.00,
       "currentPrice": 165.50,
