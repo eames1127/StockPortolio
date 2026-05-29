@@ -215,12 +215,13 @@ export default {
     /** Format a price in its native currency (pence → pounds for .L tickers) */
     formatPrice(price, currency) {
       if (price == null) return '–'
+      const fmt = (n) => parseFloat(n.toFixed(4)).toString()
       if (currency === 'GBP') {
-        return `£${(price / 100).toFixed(2)}`
+        return `£${fmt(price / 100)}`
       }
       const symbols = { USD: '$', GBP: '£', EUR: '€' }
       const sym = symbols[currency] || (currency ? `${currency} ` : '')
-      return `${sym}${price.toFixed(2)}`
+        return `£${fmt(price / 100)}`
     },
 
     formatQuoteLabel(symbol, quote) {

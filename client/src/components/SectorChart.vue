@@ -38,7 +38,7 @@
           </thead>
           <tbody>
             <tr v-for="stock in filteredStocks" :key="stock.symbol">
-              <td class="symbol">{{`${stock.companyName} - ${stock.symbol}` }}</td>
+              <td class="symbol">{{ stock.companyName && stock.companyName !== stock.symbol ? `${stock.companyName} (${stock.symbol})` : stock.symbol }}</td>
               <td class="sector-label">
                 <span class="dot" :style="{ background: sectorColor(stock.sector) }"></span>
                 {{ stock.sector }}
@@ -246,12 +246,13 @@ export default {
     },
     formatPrice(price, currency) {
       if (price == null) return '–'
+      const fmt = (n) => parseFloat(n.toFixed(4)).toString()
       if (currency === 'GBp') {
-        return `£${(price / 100).toFixed(2)}`
+        return `£${fmt(price / 100)}`
       }
       const symbols = { USD: '$', GBP: '£', EUR: '€' }
       const sym = symbols[currency] || (currency ? `${currency} ` : '')
-      return `${sym}${price.toFixed(2)}`
+      return `${sym}${fmt(price)}`
     }
   }
 }
