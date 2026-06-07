@@ -225,7 +225,14 @@ export default {
     },
 
     formatQuoteLabel(symbol, quote) {
-      const name = quote?.longName || quote?.shortName || symbol
+      // Build a name map from already-resolved companyNames in portfolioData
+      const nameFromPortfolio = Object.values(this.portfolioData.sectorDetails || {})
+        .flat()
+        .find(s => s.symbol === symbol)?.companyName
+
+      const apiLong  = quote?.longName  && quote.longName  !== symbol ? quote.longName  : null
+      const apiShort = quote?.shortName && quote.shortName !== symbol ? quote.shortName : null
+      const name = apiLong || apiShort || nameFromPortfolio || symbol
       return name === symbol ? symbol : `${name} (${symbol})`
     },
 
@@ -408,9 +415,8 @@ export default {
   border-radius: 10px;
   padding: 0.65rem 1rem;
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 0.65rem;
   box-shadow: var(--shadow);
 }
 
@@ -418,8 +424,19 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  flex: 1;
   min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .price-bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .price-ticker {
+    flex: 1;
+  }
 }
 
 .price-chip {
@@ -449,6 +466,15 @@ export default {
   align-items: center;
   gap: 0.75rem;
   flex-shrink: 0;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 768px) {
+  .price-meta {
+    padding-top: 0;
+    border-top: none;
+  }
 }
 
 .price-age {

@@ -49,8 +49,11 @@ const buildPortfolio = (data, livePrices = {}) => {
       rawPrice = liveQuote.price;
     }
 
-    // Determine the display name from live quote metadata
-const companyName = liveQuote?.longName || liveQuote?.shortName || stock.name || stock.symbol;
+    // Determine the display name: prefer live API names, but skip them if they're
+    // just the ticker symbol and Fall back to the name in portfolio.json, then the symbol.
+    const apiLong  = liveQuote?.longName  && liveQuote.longName  !== stock.symbol ? liveQuote.longName  : null
+    const apiShort = liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null
+    const companyName = apiLong || apiShort || stock.name || stock.symbol;
 
     // Yahoo Finance returns UK prices in pence; convert to pounds
     const currentPrice = isPence ? rawPrice / 100 : rawPrice;
@@ -102,7 +105,9 @@ const companyName = liveQuote?.longName || liveQuote?.shortName || stock.name ||
 
       return {
         symbol: stock.symbol,
-        companyName: liveQuote?.longName || liveQuote?.shortName || stock.name || stock.symbol,
+        companyName: (liveQuote?.longName  && liveQuote.longName  !== stock.symbol ? liveQuote.longName  : null)
+                  || (liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null)
+                  || stock.name || stock.symbol,
         annualDividend: stock.annualDividend,
         currentValue,
         costBasis
