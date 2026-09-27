@@ -6,6 +6,9 @@
     </div>
     <div class="total">
       <span>Total: £{{ totalDividends.toFixed(2) }}</span>
+      <span v-if="totalDividendGrowth != null" class="total-growth" :class="growthClass(totalDividendGrowth)">
+        {{ formatGrowth(totalDividendGrowth) }}
+      </span>
     </div>
 
     <!-- Yield per holding table -->
@@ -88,6 +91,22 @@ export default {
     totalDividends() {
       return Object.values(this.dividends).reduce((sum, amount) => sum + amount, 0)
     },
+    totalDividendGrowth() {
+      const years = Object.keys(this.dividends || {})
+        .filter(year => year && !Number.isNaN(Number(year)))
+        .sort((a, b) => Number(a) - Number(b))
+
+      if (years.length < 2) return null
+
+      const latestYear = years[years.length - 1]
+      const previousYear = years[years.length - 2]
+      const latestTotal = Number(this.dividends[latestYear]) || 0
+      const previousTotal = Number(this.dividends[previousYear]) || 0
+
+      if (previousTotal === 0) return null
+
+      return ((latestTotal - previousTotal) / previousTotal) * 100
+    },
     sortedYields() {
       return this.dividendYields
         .filter(h => h.currentValue > 0 && h.costBasis > 0)
@@ -168,6 +187,15 @@ export default {
       // If YoC beats current yield, always show green regardless of absolute level
       if (yoc > yieldPct) return 'high'
       return this.yieldClass(yoc)
+    },
+    formatGrowth(value) {
+      const prefix = value > 0 ? '+' : ''
+      return `${prefix}${value.toFixed(2)}%`
+    },
+    growthClass(value) {
+      if (value > 0) return 'high'
+      if (value < 0) return 'mid'
+      return 'low'
     }
   }
 }
@@ -196,6 +224,10 @@ export default {
 }
 
 .total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   padding: 0.75rem;
   background: var(--table-head-bg);
   border-radius: 6px;
@@ -205,6 +237,15 @@ export default {
   color: var(--text-color);
   border: 1px solid var(--table-border);
 }
+
+.total-growth {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.total-growth.high { color: #16a34a; }
+.total-growth.mid { color: #d97706; }
+.total-growth.low { color: var(--muted-color, #6b7280); }
 
 /* Yield section */
 .yield-section {
