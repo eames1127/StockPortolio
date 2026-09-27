@@ -1,7 +1,23 @@
 <template>
   <div class="chart-scroll">
+    <div class="mode-toggle" v-if="showModeToggle">
+      <button
+        type="button"
+        :class="{ active: selectedMode === 'portfolio' }"
+        @click="selectedMode = 'portfolio'"
+      >
+        Portfolio Growth
+      </button>
+      <button
+        type="button"
+        :class="{ active: selectedMode === 'dividend' }"
+        @click="selectedMode = 'dividend'"
+      >
+        Dividend Growth
+      </button>
+    </div>
     <div class="chart-container">
-      <Line :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
+      <Line :key="chartKey" :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>
@@ -28,9 +44,30 @@ export default {
       type: Object,
       default: () => ({})
     },
+    dividendGrowth: {
+      type: Object,
+      default: () => ({})
+    },
     darkMode: {
       type: Boolean,
       default: false
+    },
+    showModeToggle: {
+      type: Boolean,
+      default: true
+    },
+    datasetLabel: {
+      type: String,
+      default: 'Growth'
+    },
+    lineColor: {
+      type: String,
+      default: '#4CAF50'
+    }
+  },
+  data() {
+    return {
+      selectedMode: 'portfolio'
     }
   },
   computed: {
@@ -40,24 +77,37 @@ export default {
     gridColor() {
       return this.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
     },
+    chartKey() {
+      return `${this.darkMode ? 'dark' : 'light'}-${this.selectedMode}`
+    },
+    activeSeries() {
+      if (this.selectedMode === 'dividend') {
+        return this.dividendGrowth && Object.keys(this.dividendGrowth).length
+          ? this.dividendGrowth
+          : {}
+      }
+      return this.growth || {}
+    },
     chartData() {
-      if (!Object.keys(this.growth).length) return { labels: [], datasets: [] }
+      if (!Object.keys(this.activeSeries).length) return { labels: [], datasets: [] }
 
-      const years = Object.keys(this.growth).sort()
-      const yearlyGrowth = years.map(year => (this.growth[year]).toFixed(2))
+      const years = Object.keys(this.activeSeries).sort()
+      const yearlyGrowth = years.map(year => Number(this.activeSeries[year]).toFixed(2))
+      const label = this.selectedMode === 'dividend' ? 'Dividend Growth' : (this.datasetLabel || 'Growth')
+      const color = this.selectedMode === 'dividend' ? (this.lineColor || '#1d4ed8') : '#4CAF50'
 
       return {
         labels: years,
         datasets: [
           {
-            label: 'Growth',
+            label,
             data: yearlyGrowth,
-            borderColor: '#4CAF50',
-            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            borderColor: color,
+            backgroundColor: this.selectedMode === 'dividend' ? 'rgba(29, 78, 216, 0.1)' : 'rgba(54, 162, 235, 0.1)',
             tension: 0.4,
             pointRadius: 5,
             datalabels: {
-              backgroundColor: '#4CAF50',
+              backgroundColor: color,
               color: 'white',
               borderRadius: 4,
               font: { size: 10, weight: 'bold' },
@@ -124,8 +174,31 @@ export default {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  /* prevent scroll container from stretching parent */
   min-width: 0;
+}
+
+.mode-toggle {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.mode-toggle button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 600;
+  color: var(--text-color, #0b1220);
+  background: transparent;
+  cursor: pointer;
+}
+
+.mode-toggle button.active {
+  background: #4CAF50;
+  color: white;
 }
 
 .chart-container {

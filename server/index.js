@@ -103,12 +103,20 @@ const buildPortfolio = (data, livePrices = {}) => {
         ? (stock.quantity * stock.purchasePrice) / 100
         : stock.quantity * stock.purchasePrice;
 
+      const previousAnnualDividend =
+        stock.previousAnnualDividend ??
+        stock.previousYearDividend ??
+        stock.lastAnnualDividend ??
+        stock.priorAnnualDividend ??
+        null;
+
       return {
         symbol: stock.symbol,
         companyName: (liveQuote?.longName  && liveQuote.longName  !== stock.symbol ? liveQuote.longName  : null)
                   || (liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null)
                   || stock.name || stock.symbol,
         annualDividend: stock.annualDividend,
+        previousAnnualDividend,
         currentValue,
         costBasis
       };

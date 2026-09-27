@@ -89,7 +89,11 @@
           <div class="card-head">
             <h2>Portfolio Yearly Growth</h2>
           </div>
-          <TotalGrowth :growth="portfolioData.growth || {}" :dark-mode="darkMode" />
+          <TotalGrowth
+            :growth="portfolioData.growth || {}"
+            :dividend-growth="dividendGrowth"
+            :dark-mode="darkMode"
+          />
         </div>
 
         <!-- ── ROW 3: Allocation | Dividends ── -->
@@ -151,6 +155,23 @@ export default {
     bestPerformance() {
       const values = Object.values(this.portfolioData.growth || {})
       return values.length ? Math.max(...values).toFixed(2) : '0.00'
+    },
+    dividendGrowth() {
+      const dividendTotals = this.portfolioData.dividends || {}
+      const years = Object.keys(dividendTotals).sort((a, b) => Number(a) - Number(b))
+      const growth = {}
+
+      for (let i = 1; i < years.length; i += 1) {
+        const previousYear = years[i - 1]
+        const currentYear = years[i]
+        const previousTotal = Number(dividendTotals[previousYear]) || 0
+        const currentTotal = Number(dividendTotals[currentYear]) || 0
+
+        if (previousTotal === 0) continue
+        growth[currentYear] = ((currentTotal - previousTotal) / previousTotal) * 100
+      }
+
+      return growth
     }
   },
   async mounted() {
