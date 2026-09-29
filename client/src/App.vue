@@ -14,6 +14,10 @@
 
         <nav class="topbar-links">
           <a href="https://github.com/eames1127/StockPortolio" target="_blank" rel="noopener">GitHub</a>
+          <a class="topbar-coffee" href="https://www.buymeacoffee.com/daeames" target="_blank" rel="noopener" aria-label="Buy me a coffee">
+            <span class="topbar-coffee-icon" aria-hidden="true">☕</span>
+            <span class="topbar-coffee-label">Buy me a coffee</span>
+          </a>
           <a href="https://daeames.com" target="_blank" rel="noopener">My Portfolio</a>
         </nav>
 
@@ -139,6 +143,14 @@
           </div>
         </div>
 
+        <div class="support-card">
+          <p class="support-copy">Enjoying the tracker? Support its development.</p>
+          <a class="support-button" href="https://www.buymeacoffee.com/daeames" target="_blank" rel="noopener">
+            <span aria-hidden="true">☕</span>
+            Buy me a coffee
+          </a>
+        </div>
+
         <!-- ── ROW 4: Dividend Trends ── -->
         <div class="card card--trends">
           <div class="card-head">
@@ -150,6 +162,20 @@
 
       </div>
     </main>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <h2 class="footer-heading">Open source</h2>
+        <p class="footer-description">This project is open source. View the code or run your own copy on GitHub.</p>
+        <div class="footer-actions">
+          <a class="footer-action" href="https://github.com/eames1127/StockPortolio" target="_blank" rel="noopener">
+            <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.55.1.76-.24.76-.53v-2.08c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.24-1.62-1.24-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15 1 .1.77 2.2 3.28 1.56.1-.72.4-1.21.72-1.49-2.48-.28-5.09-1.24-5.09-5.52 0-1.22.44-2.22 1.15-3-.12-.29-.5-1.42.11-2.96 0 0 .94-.3 3.06 1.15a10.63 10.63 0 0 1 5.57 0c2.12-1.44 3.06-1.15 3.06-1.15.61 1.54.23 2.67.11 2.96.72.78 1.15 1.78 1.15 3 0 4.29-2.61 5.24-5.1 5.51.4.35.76 1.03.76 2.08V22c0 .29.2.64.77.53A11.1 11.1 0 0 0 12 .9Z" /></svg>
+            GitHub
+          </a>
+          <a class="footer-action footer-action--coffee" href="https://www.buymeacoffee.com/daeames" target="_blank" rel="noopener">Buy me a coffee</a>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -457,6 +483,43 @@ export default {
   color: #fff;
 }
 
+.topbar-links .topbar-coffee { color: rgba(255,255,255,0.38); }
+.topbar-links .topbar-coffee:hover { color: rgba(255,255,255,0.8); }
+.topbar-coffee { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+@media (max-width: 600px) {
+  .topbar-inner {
+    gap: 0.6rem;
+    padding: 0 0.75rem;
+  }
+
+  .topbar-links {
+    gap: 0.65rem;
+  }
+
+  .topbar-links a {
+    font-size: 0.72rem;
+  }
+
+  .topbar-links .topbar-coffee {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+  }
+
+  .topbar-coffee-label { display: none; }
+  .topbar-coffee-icon { font-size: 1rem; line-height: 1; }
+}
+
+@media (max-width: 380px) {
+  .brand-sub { display: none; }
+  .brand-name { font-size: 0.82rem; }
+  .topbar-inner { gap: 0.4rem; padding: 0 0.55rem; }
+  .topbar-links { gap: 0.45rem; }
+}
+
 /* Theme toggle */
 .theme-toggle {
   display: inline-flex;
@@ -625,6 +688,103 @@ export default {
 ───────────────────────────────────────── */
 .main { padding: 1.25rem 1rem 3rem; }
 .dashboard { max-width: 1280px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
+.support-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.support-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.support-button,
+.footer-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.support-button:hover,
+.footer-action:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
+  background: var(--bg-stat);
+}
+
+@media (max-width: 520px) {
+  .support-card { align-items: flex-start; flex-direction: column; gap: 0.55rem; }
+  .support-button { align-self: flex-start; }
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.site-footer-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.footer-heading {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.footer-description {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.footer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.footer-action { min-width: 8.5rem; }
+
+.github-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 520px) {
+  .footer-actions { width: 100%; flex-direction: column; }
+  .footer-action { width: 100%; box-sizing: border-box; }
+}
 
 .about-banner {
   background: var(--bg-card);
