@@ -1,7 +1,21 @@
 const fs = require('fs');
 const path = require('path');
+const { buildPortfolio } = require('../server');
 
 describe('Portfolio Integration', () => {
+  test('calculates dividend yield over all holdings and yield on cost', () => {
+    const result = buildPortfolio({
+      stocks: [
+        { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' },
+        { symbol: 'MSFT', quantity: 10, purchasePrice: 10, currentPrice: 10, sector: 'Technology' }
+      ]
+    });
+
+    expect(result.portfolioDividendYield).toBeCloseTo(10 / 300 * 100);
+    expect(result.portfolioYieldOnCost).toBe(5);
+    expect(result.dividendYields).toHaveLength(1);
+  });
+
   test('portfolio data includes sector details', () => {
     // Create mock portfolio file for testing
     const mockData = {

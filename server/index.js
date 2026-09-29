@@ -38,6 +38,8 @@ const buildPortfolio = (data, livePrices = {}) => {
   const totals = {};
   const stocksBySector = {};
   let totalValue = 0;
+  let totalCostBasis = 0;
+  let totalAnnualDividends = 0;
 
   data.stocks.forEach(stock => {
     const isPence = stock.symbol.toLowerCase().endsWith('.l');
@@ -70,6 +72,13 @@ const buildPortfolio = (data, livePrices = {}) => {
       currency
     });
     totalValue += value;
+
+    const quantity = Number(stock.quantity);
+    const purchasePrice = Number(stock.purchasePrice);
+    if (Number.isFinite(quantity) && Number.isFinite(purchasePrice)) {
+      totalCostBasis += isPence ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
+    }
+    totalAnnualDividends += Number(stock.annualDividend) || 0;
   });
 
   const sectors = {};
@@ -128,6 +137,12 @@ const buildPortfolio = (data, livePrices = {}) => {
     dividends:      data.dividends || {},
     growth:         data.growth    || {},
     dividendYields,
+    portfolioDividendYield: totalValue > 0
+      ? (totalAnnualDividends / totalValue) * 100
+      : null,
+    portfolioYieldOnCost: totalCostBasis > 0
+      ? (totalAnnualDividends / totalCostBasis) * 100
+      : null,
     stockCount:     data.stocks.length,
     diversification: Object.keys(totals).length
   };
@@ -222,12 +237,16 @@ app.get('/api/performance', (req, res) => {
 
 // ─── boot ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  try {
-    const data = readPortfolioFile();
-    console.log(`Loaded ${data.stocks.length} stocks across portfolio.json`);
-  } catch (err) {
-    console.error('portfolio.json load failed:', err.message);
-  }
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    try {
+      const data = readPortfolioFile();
+      console.log(`Loaded ${data.stocks.length} stocks across portfolio.json`);
+    } catch (err) {
+      console.error('portfolio.json load failed:', err.message);
+    }
+  });
+}
+
+module.exports = { app, buildPortfolio };

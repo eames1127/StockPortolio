@@ -78,11 +78,36 @@
             <span class="stat-chip-label">Sectors</span>
             <span class="stat-chip-value">{{ portfolioData.diversification || 0 }}</span>
           </div>
-          <div class="stat-chip accent">
+          <div class="stat-chip">
             <span class="stat-chip-label">Best Year</span>
             <span class="stat-chip-value">{{ bestPerformance }}%</span>
+            <span class="stat-chip-detail">{{ bestPerformanceYear }}</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label">Worst Year</span>
+            <span class="stat-chip-value" :class="{ negative: Number(worstPerformance) < 0 }">{{ worstPerformance }}%</span>
+            <span class="stat-chip-detail">{{ worstPerformanceYear }}</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label">Portfolio Dividend Yield</span>
+            <span class="stat-chip-value">{{ portfolioDividendYield }}<span v-if="portfolioDividendYield !== '–'">%</span></span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label">Yield on Cost</span>
+            <span class="stat-chip-value">{{ portfolioYieldOnCost }}<span v-if="portfolioYieldOnCost !== '–'">%</span></span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label">CAGR</span>
+            <span class="stat-chip-value" :class="{ positive: Number(cagr) > 0, negative: Number(cagr) < 0 }">{{ cagr }}<span v-if="cagr !== '–'">%</span></span>
+            <span class="stat-chip-detail">{{ growthYearRange }}</span>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label">Top Holding</span>
+            <span class="stat-chip-value">{{ topHoldingWeight }}%</span>
+            <span class="stat-chip-detail">{{ topHoldingName }}</span>
           </div>
         </div>
+        <p class="stat-footnote">Compound Annual Growth Rate (CAGR): the steady yearly return that would give the same overall result.</p>
 
         <!-- ── ROW 2: Growth chart full width ── -->
         <div class="card card--growth">
@@ -152,9 +177,62 @@ export default {
     }
   },
   computed: {
+    topHolding() {
+      const holdings = Object.values(this.portfolioData.sectorDetails || {}).flat()
+      return holdings.reduce((top, holding) => (
+        !top || Number(holding.percentage) > Number(top.percentage) ? holding : top
+      ), null)
+    },
+    topHoldingWeight() {
+      return this.topHolding ? Number(this.topHolding.percentage).toFixed(2) : '0.00'
+    },
+    topHoldingName() {
+      return this.topHolding ? (this.topHolding.companyName || this.topHolding.symbol) : '–'
+    },
+    portfolioDividendYield() {
+      const value = this.portfolioData.portfolioDividendYield
+      return value == null || !Number.isFinite(Number(value)) ? '–' : Number(value).toFixed(2)
+    },
+    portfolioYieldOnCost() {
+      const value = this.portfolioData.portfolioYieldOnCost
+      return value == null || !Number.isFinite(Number(value)) ? '–' : Number(value).toFixed(2)
+    },
+    yearlyPerformance() {
+      return Object.entries(this.portfolioData.growth || {})
+        .filter(([year, value]) => Number.isFinite(Number(year)) && Number.isFinite(Number(value)))
+        .map(([year, value]) => ({ year, value: Number(value) }))
+        .sort((a, b) => Number(a.year) - Number(b.year))
+    },
     bestPerformance() {
-      const values = Object.values(this.portfolioData.growth || {})
+      const values = this.yearlyPerformance.map(({ value }) => value)
       return values.length ? Math.max(...values).toFixed(2) : '0.00'
+    },
+    bestPerformanceYear() {
+      const best = this.yearlyPerformance.reduce((result, entry) => (
+        !result || entry.value > result.value ? entry : result
+      ), null)
+      return best ? best.year : '–'
+    },
+    worstPerformance() {
+      const values = this.yearlyPerformance.map(({ value }) => value)
+      return values.length ? Math.min(...values).toFixed(2) : '0.00'
+    },
+    worstPerformanceYear() {
+      const worst = this.yearlyPerformance.reduce((result, entry) => (
+        !result || entry.value < result.value ? entry : result
+      ), null)
+      return worst ? worst.year : '–'
+    },
+    cagr() {
+      const years = this.yearlyPerformance
+      if (!years.length || years.some(({ value }) => value < -100)) return '–'
+
+      const totalGrowth = years.reduce((total, { value }) => total * (1 + value / 100), 1)
+      return ((totalGrowth ** (1 / years.length) - 1) * 100).toFixed(2)
+    },
+    growthYearRange() {
+      const years = this.yearlyPerformance
+      return years.length ? `${years[0].year}–${years[years.length - 1].year}` : '–'
     },
     dividendGrowth() {
       const dividendTotals = this.portfolioData.dividends || {}
@@ -283,6 +361,8 @@ export default {
   --shadow-hover:  0 8px 28px rgba(0,0,0,0.12);
   --accent:        #22c55e;
   --accent-dim:    rgba(34,197,94,0.12);
+  --positive:      #16a34a;
+  --negative:      #dc2626;
   --topbar-bg:     #0d1117;
   --topbar-text:   #f0f2f8;
 
@@ -303,6 +383,8 @@ export default {
   --border:       rgba(255,255,255,0.06);
   --shadow:       0 2px 12px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
   --shadow-hover: 0 8px 28px rgba(0,0,0,0.6);
+  --positive:     #4ade80;
+  --negative:     #f87171;
   --topbar-bg:    #060b11;
   --topbar-text:  #e8edf5;
 }
@@ -553,17 +635,23 @@ export default {
 }
 .about-banner p { margin: 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
 
-.stat-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.stat-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .stat-chip {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
-  padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.3rem;
+  min-width: 0; padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.3rem;
   box-shadow: var(--shadow); transition: box-shadow 0.2s, transform 0.2s;
 }
 .stat-chip:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-.stat-chip.accent { border-color: var(--accent); background: var(--accent-dim); }
 .stat-chip-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
 .stat-chip-value { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; letter-spacing: -0.02em; }
-.stat-chip.accent .stat-chip-value { color: var(--accent); }
+.stat-chip-detail { font-size: 0.75rem; color: var(--text-muted); }
+.stat-chip-value.positive { color: var(--positive); }
+.stat-chip-value.negative { color: var(--negative); }
+.stat-footnote { margin: -0.75rem 0 0; font-size: 0.68rem; line-height: 1.4; color: var(--text-muted); }
+
+@media (min-width: 700px) {
+  .stat-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 .card {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
