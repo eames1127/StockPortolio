@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
+import App from '../App.vue'
 import DividendSummary from '../components/DividendSummary.vue'
 import TotalGrowth from '../components/TotalGrowth.vue'
 
@@ -39,6 +40,39 @@ beforeAll(() => {
 })
 
 describe('Dividend Calculations', () => {
+  it('calculates yearly performance stats from ordered annual returns', () => {
+    const portfolioData = { growth: { 2024: -20, 2022: 10, 2023: 30 } }
+    const yearlyPerformance = App.computed.yearlyPerformance.call({ portfolioData })
+    const context = { yearlyPerformance }
+
+    expect(yearlyPerformance.map(({ year }) => year)).toEqual(['2022', '2023', '2024'])
+    expect(App.computed.bestPerformance.call(context)).toBe('30.00')
+    expect(App.computed.bestPerformanceYear.call(context)).toBe('2023')
+    expect(App.computed.worstPerformance.call(context)).toBe('-20.00')
+    expect(App.computed.worstPerformanceYear.call(context)).toBe('2024')
+    expect(App.computed.growthYearRange.call(context)).toBe('2022–2024')
+    expect(App.computed.cagr.call(context)).toBe('4.59')
+  })
+
+  it('shows the top holding and formats portfolio yield stats', () => {
+    const portfolioData = {
+      sectorDetails: {
+        Financial: [{ symbol: 'LLOY.L', companyName: 'Lloyds', percentage: '27.00' }],
+        Technology: [{ symbol: 'AAPL', companyName: 'Apple', percentage: '18.00' }]
+      },
+      portfolioDividendYield: 3.456,
+      portfolioYieldOnCost: 4.5
+    }
+    const context = { portfolioData }
+    const computedContext = { ...context, topHolding: App.computed.topHolding.call(context) }
+
+    expect(computedContext.topHolding.symbol).toBe('LLOY.L')
+    expect(App.computed.topHoldingWeight.call(computedContext)).toBe('27.00')
+    expect(App.computed.topHoldingName.call(computedContext)).toBe('Lloyds')
+    expect(App.computed.portfolioDividendYield.call(context)).toBe('3.46')
+    expect(App.computed.portfolioYieldOnCost.call(context)).toBe('4.50')
+  })
+
   it('calculates total dividends correctly', () => {
     const dividends = {
       '2022': 1200.50,
