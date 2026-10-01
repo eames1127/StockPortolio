@@ -273,9 +273,9 @@ export default {
 
 .yield-table-wrapper {
   overflow-x: auto;
-  border-radius: 8px;
   border: 1px solid var(--table-border);
-  background: var(--table-bg);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128,128,128,0.3) transparent;
 }
 
 .yield-table {
