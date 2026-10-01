@@ -168,7 +168,7 @@ export default {
               size: 14
             },
             formatter: (value) => `${value}%`,
-            display: (context) => context.parsed > 5
+            display: (context) => context.dataset.data[context.dataIndex] > 5
           }
         },
         layout: {
