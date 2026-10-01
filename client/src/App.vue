@@ -84,12 +84,12 @@
           </div>
           <div class="stat-chip">
             <span class="stat-chip-label">Best Year</span>
-            <span class="stat-chip-value">{{ bestPerformance }}%</span>
+            <span class="stat-chip-value" :class="{ positive: Number(bestPerformance) > 0, negative: Number(bestPerformance) < 0 }">{{ bestPerformance }}%</span>
             <span class="stat-chip-detail">{{ bestPerformanceYear }}</span>
           </div>
           <div class="stat-chip">
             <span class="stat-chip-label">Worst Year</span>
-            <span class="stat-chip-value" :class="{ negative: Number(worstPerformance) < 0 }">{{ worstPerformance }}%</span>
+            <span class="stat-chip-value" :class="{ positive: Number(worstPerformance) > 0, negative: Number(worstPerformance) < 0 }">{{ worstPerformance }}%</span>
             <span class="stat-chip-detail">{{ worstPerformanceYear }}</span>
           </div>
           <div class="stat-chip">
