@@ -87,11 +87,83 @@ npm run dev
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:3001
 
-### 4. Build for Production
+### 4. Build and Deploy for Production
+
+The production build compiles **only the frontend**. The Express API is plain
+Node.js and does not need a separate build step. Deploy the frontend and API
+as separate services, or host them on the same machine with a web server that
+serves the frontend and proxies `/api` requests to the API.
+
+#### Build the frontend
+
+From the project root, install dependencies and create the production build:
 
 ```bash
+npm ci
+npm ci --prefix client
 npm run build
 ```
+
+The static site is generated in `client/dist/`. Copy the **contents** of this
+directory (including `index.html` and `assets/`) to the document root used by
+your web server or static hosting provider. Do not deploy the `client/src/`
+directory as the production site.
+
+#### Deploy the API
+
+Copy these files and directories to the API server, keeping their relative
+layout:
+
+```text
+package.json
+package-lock.json
+server/
+  index.js
+  priceService.js
+data/
+  performance.js
+  portfolio.json
+```
+
+`data/portfolio.json` contains private portfolio data and is excluded from
+Git. Transfer it securely and ensure it is present on the server; the API
+cannot load the portfolio without it. Do not copy `node_modules/` from your
+development machine.
+
+On the API server, from the directory containing `package.json`, install
+production dependencies and start the API:
+
+```bash
+npm ci --omit=dev
+NODE_ENV=production PORT=3001 node server/index.js
+```
+
+Set `NODE_ENV` and `PORT` in your process manager or hosting platform for
+persistent deployments. Keep the process running with a service manager such
+as systemd or PM2, and allow the web server to reach the configured API port.
+The API does not serve the built frontend itself.
+
+#### Configure web-server routing
+
+Configure the web server to:
+
+1. Serve the files copied from `client/dist/` for website requests.
+2. Forward requests under `/api/` to the running Node.js API (for example,
+   `http://127.0.0.1:3001`).
+
+The frontend calls the API using same-origin `/api/...` paths. The `/api`
+proxy in `client/vite.config.js` is for the local development server only; it
+does not configure production routing. This setup expects the frontend and API
+to share a domain. Hosting them on different domains requires changing the
+frontend API URL and configuring cross-origin access before building.
+
+#### Deploying updates
+
+After changing frontend code, run `npm run build` again and replace the
+deployed frontend files. After changing API code, deploy the changed server
+files and restart the Node.js process. `data/portfolio.json` is read for each
+request, so portfolio-data edits do not require an API restart; live quotes
+are cached for up to one hour unless refreshed through the API.
 
 ## API Endpoints
 
