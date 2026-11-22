@@ -16,6 +16,76 @@ describe('Portfolio Integration', () => {
     expect(result.dividendYields).toHaveLength(1);
   });
 
+  test('dividend yield rows expose percentages, not absolute holding values', () => {
+    const result = buildPortfolio({
+      stocks: [
+        { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
+      ]
+    });
+
+    const [row] = result.dividendYields;
+    expect(row).not.toHaveProperty('currentValue');
+    expect(row).not.toHaveProperty('costBasis');
+    expect(row.yield).toBeCloseTo(5);
+    expect(row.yieldOnCost).toBeCloseTo(10);
+  });
+
+  test('dividend yield rows omit holdings with no value or cost basis', () => {
+    const result = buildPortfolio({
+      stocks: [
+        { symbol: 'AAPL', quantity: 10, purchasePrice: 0, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
+      ]
+    });
+
+    expect(result.dividendYields).toHaveLength(0);
+  });
+
+  describe('dividend values setting', () => {
+    const data = {
+      stocks: [
+        { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 30, previousAnnualDividend: 25, sector: 'Technology' },
+        { symbol: 'MSFT', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
+      ],
+      dividends: { '2022': 200, '2023': 250, '2024': 300 }
+    };
+
+    test('omits £ dividend amounts by default', () => {
+      const result = buildPortfolio(data);
+
+      expect(result.config).toEqual({ showDividendValues: false });
+      expect(result).not.toHaveProperty('dividends');
+      result.dividendYields.forEach(row => {
+        expect(row).not.toHaveProperty('annualDividend');
+        expect(row).not.toHaveProperty('previousAnnualDividend');
+      });
+    });
+
+    test('always sends dividends as an index of the first year and as shares', () => {
+      const result = buildPortfolio(data);
+
+      expect(result.dividendIndex).toEqual({ '2022': 100, '2023': 125, '2024': 150 });
+      const shares = Object.fromEntries(result.dividendYields.map(r => [r.symbol, r.dividendShare]));
+      expect(shares.AAPL).toBeCloseTo(75);
+      expect(shares.MSFT).toBeCloseTo(25);
+    });
+
+    test('includes £ dividend amounts when enabled', () => {
+      const result = buildPortfolio(data, {}, {}, { showDividendValues: true });
+
+      expect(result.config).toEqual({ showDividendValues: true });
+      expect(result.dividends).toEqual(data.dividends);
+      const aapl = result.dividendYields.find(r => r.symbol === 'AAPL');
+      expect(aapl.annualDividend).toBe(30);
+      expect(aapl.previousAnnualDividend).toBe(25);
+    });
+
+    test('indexes against the first non-zero year', () => {
+      const result = buildPortfolio({ ...data, dividends: { '2021': 0, '2022': 50, '2023': 75 } });
+
+      expect(result.dividendIndex).toEqual({ '2021': 0, '2022': 100, '2023': 150 });
+    });
+  });
+
   test('portfolio data includes sector details', () => {
     // Create mock portfolio file for testing
     const mockData = {

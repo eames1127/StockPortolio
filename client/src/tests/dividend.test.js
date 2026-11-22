@@ -107,15 +107,68 @@ describe('Dividend Calculations', () => {
           symbol: 'AAPL',
           companyName: 'Apple Inc.',
           annualDividend: 120,
-          currentValue: 2000,
-          costBasis: 1500
-        }]
+          dividendShare: 100,
+          yield: 6,
+          yieldOnCost: 8
+        }],
+        showDividendValues: true,
+        mode: 'value'
       }
     })
 
     const headers = wrapper.findAll('th').map(cell => cell.text().trim())
     expect(headers).not.toContain('YoY')
     expect(wrapper.text()).toContain('+20.00%')
+  })
+
+  describe('dividend values setting', () => {
+    const percentProps = {
+      dividendIndex: { '2023': 100, '2024': 120 },
+      dividendYields: [{
+        symbol: 'AAPL',
+        companyName: 'Apple Inc.',
+        dividendShare: 62.5,
+        yield: 6,
+        yieldOnCost: 8
+      }]
+    }
+
+    it('shows only percentages and no toggle when £ values are disabled', () => {
+      const wrapper = mount(DividendSummary, { props: { ...percentProps, mode: 'value' } })
+
+      expect(wrapper.find('.mode-toggle').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('£')
+      expect(wrapper.text()).toContain('Share of Dividends')
+      expect(wrapper.text()).toContain('62.50%')
+      expect(wrapper.text()).toContain('+20.00%')
+    })
+
+    it('offers a £ / % toggle when £ values are enabled', async () => {
+      const wrapper = mount(DividendSummary, {
+        props: { ...percentProps, showDividendValues: true, mode: 'percent' }
+      })
+
+      const buttons = wrapper.findAll('.mode-toggle button')
+      expect(buttons.map(b => b.text())).toEqual(['£', '%'])
+      expect(wrapper.text()).not.toContain('Total: £')
+
+      await buttons[0].trigger('click')
+      expect(wrapper.emitted('update:mode')).toEqual([['value']])
+    })
+
+    it('forces percentage mode in the app when the server disables £ values', () => {
+      const context = { dividendMode: 'value', showDividendValues: false }
+      expect(App.computed.dividendDisplayMode.get.call(context)).toBe('percent')
+      expect(App.computed.dividendDisplayMode.get.call({ ...context, showDividendValues: true })).toBe('value')
+    })
+
+    it('works out dividend growth from the index', () => {
+      const portfolioData = { dividendIndex: { '2022': 100, '2023': 125, '2024': 150 } }
+      const growth = App.computed.dividendGrowth.call({ portfolioData })
+
+      expect(growth['2023']).toBeCloseTo(25)
+      expect(growth['2024']).toBeCloseTo(20)
+    })
   })
 
   it('supports switching the annual growth chart between portfolio and dividend modes', () => {

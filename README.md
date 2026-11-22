@@ -2,16 +2,16 @@
 
 > **Note**: This application was scaffolded from a single AI prompt and currently works with mock performance data only. Portfolio allocation is calculated from your actual stock data, but performance charts display simulated historical data at this moment in time.
 
-A Vue.js web application for tracking stock portfolio growth and diversification by sector, inspired by sovereign wealth fund principles. The application prioritizes privacy by displaying only percentage allocations and growth rates without revealing absolute monetary values.
+A Vue.js web application for tracking stock portfolio growth and diversification by sector, inspired by sovereign wealth fund principles. The application prioritises privacy: it never shows total portfolio value. Showing dividend amounts in £ is optional and off by default.
 
 ## Features
 
 -  **Sector Diversification Visualization**: Interactive pie chart with detailed stock breakdowns on hover
 -  **Performance Tracking**: Historical growth tracking with selectable time periods (1M, 1Y, YTD, 5Y)
 -  **Performance Yearly Growth**: Annual portfolio growth analysis
--  **Dividend Tracking**: Annual dividend summaries with trend analysis and monthly/daily averages
+-  **Dividend Tracking**: Annual dividend summaries with trend analysis, shown as percentages or (optionally) £ amounts with monthly/daily averages
 -  **Dividend Yield per Holding**: Current yield % and yield on cost % per stock, colour-coded with directional indicators
--  **Privacy-First Design**: No absolute values displayed, only percentages and ratios
+-  **Privacy-First Design**: Total portfolio value is never displayed; dividend £ amounts are optional
 -  **Responsive Design**: Works seamlessly across desktop, tablet, and mobile devices
 -  **Secure Data Handling**: Personal portfolio data excluded from git commits
 -  **Unit Tested**: Comprehensive test coverage for core functionality
@@ -75,6 +75,8 @@ Edit `data/portfolio.json` with your stock holdings:
 **Supported Sectors**: Technology, Healthcare, Financial, Energy, Consumer, Industrial, Utilities, Materials
 
 > **Dividend fields**: Only include `annualDividend` on stocks that pay a dividend. This should be the **total pounds received** for that holding in the year, not a per-share figure. Stocks without this field are excluded from the yield table automatically.
+
+> **Dividend amounts**: By default dividends are shown only as percentages (share of dividends per holding, and each year as a % of the first year), and the API does not send £ amounts at all. To show £ amounts, set `SHOW_DIVIDEND_VALUES=true` in `.env` and restart the server. The dividend section then gets a £ / % toggle, and the monthly/daily averages chart appears in £ mode.
 
 > **UK stocks (LSE)**: Symbols ending in `.l` are automatically detected as priced in pence. Both current yield and yield on cost are adjusted accordingly — no manual conversion needed.
 
@@ -183,12 +185,12 @@ Returns portfolio allocation by sector with detailed stock breakdowns
       { "symbol": "MSFT", "percentage": "40.00" }
     ]
   },
-  "dividends": {
-    "2020": 1250.00,
-    "2021": 1380.50,
-    "2022": 1420.75,
-    "2023": 1580.25,
-    "2024": 1650.00
+  "dividendIndex": {
+    "2020": 100,
+    "2021": 110.44,
+    "2022": 113.66,
+    "2023": 126.42,
+    "2024": 132
   },
   "growth": {
     "2022": -17.14,
@@ -196,13 +198,16 @@ Returns portfolio allocation by sector with detailed stock breakdowns
     "2024": -17.76
   },
   "dividendYields": [
-    { "symbol": "XOM", "annualDividend": 768.00, "currentValue": 18100.00 },
-    { "symbol": "JNJ", "annualDividend": 693.75, "currentValue": 12412.50 }
+    { "symbol": "XOM", "dividendShare": 52.54, "yield": 4.24, "yieldOnCost": 5.1 },
+    { "symbol": "JNJ", "dividendShare": 47.46, "yield": 5.59, "yieldOnCost": 6.2 }
   ],
+  "config": { "showDividendValues": false },
   "stockCount": 10,
   "diversification": 3
 }
 ```
+
+With `SHOW_DIVIDEND_VALUES=true`, the response also includes `dividends` (£ totals per year) and `annualDividend` / `previousAnnualDividend` on each `dividendYields` row.
 
 ### GET /api/performance?period=1Y
 Returns mock historical performance data for charts
@@ -245,19 +250,22 @@ Returns mock historical performance data for charts
   - Responsive design
 
 ### DividendSummary.vue
-**Purpose**: Bar chart displaying annual dividend totals plus a yield-per-holding table
+**Purpose**: Bar chart of annual dividends (as £ totals or as a % of the first year) plus a yield-per-holding table
 - **Props**: 
-  - `dividends` (Object) - Yearly dividend totals
-  - `dividendYields` (Array) - Per-stock `{ symbol, annualDividend, currentValue, costBasis }` from the API
+  - `dividends` (Object) - Yearly dividend £ totals (only sent when `SHOW_DIVIDEND_VALUES=true`)
+  - `dividendIndex` (Object) - Yearly dividends as a % of the first year
+  - `dividendYields` (Array) - Per-stock `{ symbol, dividendShare, yield, yieldOnCost }`, plus `annualDividend` when £ values are on
+  - `showDividendValues` (Boolean) - Whether the £ / % toggle is offered
+  - `mode` (String, `v-model:mode`) - `'value'` or `'percent'`
 - **Features**: 
   - Interactive bar chart with data labels
-  - Total dividend calculation
+  - Total dividend calculation (£ mode) or year-on-year growth (% mode)
   - Yield per holding table sorted highest to lowest, colour-coded: green ≥5%, amber 2–5%, grey <2%
   - Yield on Cost column showing return relative to purchase price, with ↑/↓ indicator vs current yield
   - Only dividend-paying stocks are shown
 
 ### DividendChart.vue
-**Purpose**: Line chart showing dividend trends and averages
+**Purpose**: Line chart showing dividend trends and averages (only shown in £ mode)
 - **Props**: `dividends` (Object) - Yearly dividend data
 - **Features**: 
   - Dual-line chart (monthly and daily averages)
@@ -270,6 +278,7 @@ Returns mock historical performance data for charts
   - Responsive grid layout
   - Data fetching with error handling
   - Time period state management
+  - Dividend display mode (£ / %), remembered in `localStorage` and forced to % when `SHOW_DIVIDEND_VALUES` is off
 
 ## Yield on Cost
 
@@ -301,7 +310,8 @@ npm run test:client
 
 ## Data Privacy & Security
 
-- **No Absolute Values**: Stock quantities and prices never exposed to frontend
+- **No Portfolio Value**: Total portfolio value, holding values and stock quantities are never sent to the frontend
+- **Optional Dividend Amounts**: £ dividend amounts are only sent when `SHOW_DIVIDEND_VALUES=true`; otherwise dividends are percentages only
 - **Git Privacy**: Personal portfolio.json excluded from version control
 - **Server-Side Calculations**: All sensitive computations performed on backend
 - **No Tracking**: No user data collection or external analytics
@@ -312,8 +322,8 @@ npm run test:client
 - ✅ Calculates real portfolio allocation from your stock data
 - ✅ Shows accurate sector diversification and stock breakdowns
 - ✅ Shows dividend yield and yield on cost from your actual stock data
+- ✅ Uses live stock prices from Yahoo Finance (via `yahoo-finance2`), cached for an hour and falling back to the `currentPrice` in `portfolio.json` if a quote is unavailable
 - ❌ Uses mock historical performance data for charts
-- ❌ Does not connect to live stock price APIs
 
 To integrate real performance data, replace the `generatePerformance()` function in `server/index.js` with calls to your preferred stock API.
 
@@ -386,7 +396,6 @@ Replace mock data in `data/performance.js` and update `generatePerformance()` in
 
 ## Future Enhancements
 
--  **Live Stock Price Integration**: Connect to real-time APIs for current performance data
 -  **Historical Data Persistence**: Store and track actual portfolio performance over time
 -  **Multi-Currency**: Support for international stock markets
 

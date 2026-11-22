@@ -8,6 +8,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DEFAULT_PERIOD = '1Y';
+// Off unless explicitly enabled, so £ dividend amounts never leave the server by accident.
+const SHOW_DIVIDEND_VALUES = process.env.SHOW_DIVIDEND_VALUES === 'true';
 
 app.use(express.json());
 
@@ -24,6 +26,20 @@ const readPortfolioFile = () =>
 const getSymbols = () => {
   const data = readPortfolioFile();
   return [...new Set(data.stocks.map(s => s.symbol))];
+};
+
+/**
+ * Express yearly dividend totals as a percentage of the first non-zero year,
+ * so the trend can be shown without revealing the amounts.
+ */
+const buildDividendIndex = (dividends) => {
+  const years = Object.keys(dividends).sort((a, b) => Number(a) - Number(b));
+  const base = years.map(year => Number(dividends[year]) || 0).find(total => total > 0);
+  if (!base) return {};
+
+  return Object.fromEntries(
+    years.map(year => [year, ((Number(dividends[year]) || 0) / base) * 100])
+  );
 };
 
 /**
@@ -59,7 +75,7 @@ const holdingCurrency = (stock, liveQuote) => {
  * sector weights and yields compare like with like; per-stock prices stay
  * in their own currency.
  */
-const buildPortfolio = (data, livePrices = {}, fxRates = {}) => {
+const buildPortfolio = (data, livePrices = {}, fxRates = {}, { showDividendValues = false } = {}) => {
   const totals = {};
   const unconvertedSymbols = [];
   let currencyConverted = false;
@@ -133,8 +149,10 @@ const buildPortfolio = (data, livePrices = {}, fxRates = {}) => {
     }));
   });
 
-  // Dividend yield rows, also using live prices where available
-  const dividendYields = data.stocks
+  // Dividend yield rows, also using live prices where available.
+  // Only percentages leave the server: absolute holding values would
+  // reveal the portfolio's size to anyone inspecting the API response.
+  const dividendRows = data.stocks
     .filter(stock => stock.annualDividend && stock.annualDividend > 0)
     .map(stock => {
       const liveQuote = livePrices[stock.symbol];
@@ -166,12 +184,29 @@ const buildPortfolio = (data, livePrices = {}, fxRates = {}) => {
         currentValue,
         costBasis
       };
-    });
+    })
+    .filter(row => row.currentValue > 0 && row.costBasis > 0);
+
+  // Shares are of the dividends listed here, so they add up to 100% even when
+  // a holding was left out of the portfolio totals for lack of an FX rate.
+  const listedDividends = dividendRows.reduce((sum, row) => sum + row.annualDividend, 0);
+  const dividendYields = dividendRows
+    .map(({ currentValue, costBasis, annualDividend, previousAnnualDividend, ...row }) => ({
+      ...row,
+      ...(showDividendValues && { annualDividend, previousAnnualDividend }),
+      dividendShare: listedDividends > 0 ? (annualDividend / listedDividends) * 100 : 0,
+      yield: (annualDividend / currentValue) * 100,
+      yieldOnCost: (annualDividend / costBasis) * 100
+    }));
+
+  const dividends = data.dividends || {};
 
   return {
     sectors,
     sectorDetails,
-    dividends:      data.dividends || {},
+    ...(showDividendValues && { dividends }),
+    dividendIndex:  buildDividendIndex(dividends),
+    config:         { showDividendValues },
     growth:         data.growth    || {},
     dividendYields,
     portfolioDividendYield: totalValue > 0
@@ -216,7 +251,7 @@ app.get('/api/portfolio', async (req, res) => {
       console.warn('[/api/portfolio] FX rate fetch failed, foreign holdings left unconverted:', fxErr.message);
     }
 
-    res.json(buildPortfolio(data, livePrices, fxRates));
+    res.json(buildPortfolio(data, livePrices, fxRates, { showDividendValues: SHOW_DIVIDEND_VALUES }));
   } catch (error) {
     console.error('[/api/portfolio]', error);
     res.status(500).json({ error: 'Failed to load portfolio' });
