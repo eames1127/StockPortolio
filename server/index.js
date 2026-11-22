@@ -95,7 +95,9 @@ const buildPortfolio = (data, livePrices = {}) => {
     }));
   });
 
-  // Dividend yield rows, also using live prices where available
+  // Dividend yield rows, also using live prices where available.
+  // Only percentages leave the server: absolute holding values would
+  // reveal the portfolio's size to anyone inspecting the API response.
   const dividendYields = data.stocks
     .filter(stock => stock.annualDividend && stock.annualDividend > 0)
     .map(stock => {
@@ -129,7 +131,13 @@ const buildPortfolio = (data, livePrices = {}) => {
         currentValue,
         costBasis
       };
-    });
+    })
+    .filter(row => row.currentValue > 0 && row.costBasis > 0)
+    .map(({ currentValue, costBasis, ...row }) => ({
+      ...row,
+      yield: (row.annualDividend / currentValue) * 100,
+      yieldOnCost: (row.annualDividend / costBasis) * 100
+    }));
 
   return {
     sectors,

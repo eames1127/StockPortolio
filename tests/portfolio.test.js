@@ -16,6 +16,30 @@ describe('Portfolio Integration', () => {
     expect(result.dividendYields).toHaveLength(1);
   });
 
+  test('dividend yield rows expose percentages, not absolute holding values', () => {
+    const result = buildPortfolio({
+      stocks: [
+        { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
+      ]
+    });
+
+    const [row] = result.dividendYields;
+    expect(row).not.toHaveProperty('currentValue');
+    expect(row).not.toHaveProperty('costBasis');
+    expect(row.yield).toBeCloseTo(5);
+    expect(row.yieldOnCost).toBeCloseTo(10);
+  });
+
+  test('dividend yield rows omit holdings with no value or cost basis', () => {
+    const result = buildPortfolio({
+      stocks: [
+        { symbol: 'AAPL', quantity: 10, purchasePrice: 0, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
+      ]
+    });
+
+    expect(result.dividendYields).toHaveLength(0);
+  });
+
   test('portfolio data includes sector details', () => {
     // Create mock portfolio file for testing
     const mockData = {

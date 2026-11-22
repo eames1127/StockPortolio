@@ -35,10 +35,10 @@
               <td class="yield-pct" :class="yieldClass(holding.yield)">
                 {{ holding.yield.toFixed(2) }}%
               </td>
-              <td class="yield-pct yoc" :class="yocClass(holding.yield, holding.yoc)">
-                {{ holding.yoc.toFixed(2) }}%
-                <span v-if="holding.yoc > holding.yield" class="yoc-badge">↑</span>
-                <span v-else-if="holding.yoc < holding.yield" class="yoc-badge down">↓</span>
+              <td class="yield-pct yoc" :class="yocClass(holding.yield, holding.yieldOnCost)">
+                {{ holding.yieldOnCost.toFixed(2) }}%
+                <span v-if="holding.yieldOnCost > holding.yield" class="yoc-badge">↑</span>
+                <span v-else-if="holding.yieldOnCost < holding.yield" class="yoc-badge down">↓</span>
               </td>
               <td class="yield-bar-col">
                 <div class="yield-bar-track">
@@ -109,12 +109,7 @@ export default {
     },
     sortedYields() {
       return this.dividendYields
-        .filter(h => h.currentValue > 0 && h.costBasis > 0)
-        .map(h => ({
-          ...h,
-          yield: (h.annualDividend / h.currentValue) * 100,
-          yoc: (h.annualDividend / h.costBasis) * 100
-        }))
+        .slice()
         .sort((a, b) => b.yield - a.yield)
     },
     maxYield() {

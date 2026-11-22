@@ -107,8 +107,8 @@ describe('Dividend Calculations', () => {
           symbol: 'AAPL',
           companyName: 'Apple Inc.',
           annualDividend: 120,
-          currentValue: 2000,
-          costBasis: 1500
+          yield: 6,
+          yieldOnCost: 8
         }]
       }
     })
