@@ -13,15 +13,15 @@ const yahooFinance = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-let cache = {
-  prices: {},
-  fetchedAt: null
+const cache = {
+	prices: {},
+	fetchedAt: null,
 };
 
 let pendingFetch = null;
 
 function isCacheValid() {
-  return cache.fetchedAt && (Date.now() - cache.fetchedAt.getTime()) < CACHE_TTL_MS;
+	return cache.fetchedAt && Date.now() - cache.fetchedAt.getTime() < CACHE_TTL_MS;
 }
 
 /**
@@ -32,37 +32,40 @@ function isCacheValid() {
  * @returns {Promise<Object>}
  */
 async function fetchQuotes(symbols) {
-  if (!symbols || symbols.length === 0) return {};
+	if (!symbols || symbols.length === 0) {
+		return {};
+	}
 
-  const results = await Promise.allSettled(
-    symbols.map(sym =>
-      yahooFinance.quote(sym, {}, { validateResult: false })
-    )
-  );
+	const results = await Promise.allSettled(
+		symbols.map((sym) => yahooFinance.quote(sym, {}, { validateResult: false })),
+	);
 
-  const prices = {};
-  results.forEach((result, i) => {
-    const sym = symbols[i];
-    if (result.status === 'fulfilled' && result.value) {
-      const q = result.value;
-      prices[sym] = {
-        price:         q.regularMarketPrice      ?? null,
-        previousClose: q.regularMarketPreviousClose ?? null,
-        change:        q.regularMarketChange      ?? null,
-        changePct:     q.regularMarketChangePercent ?? null,
-        currency:      q.currency                 ?? 'USD',
-        shortName:     q.shortName                ?? sym,
-        longName:      q.longName                 ?? null,
-        marketState:   q.marketState              ?? 'CLOSED',
-        updatedAt:     new Date().toISOString()
-      };
-    } else {
-      console.warn(`[priceService] Failed to fetch ${sym}:`, result.reason?.message ?? 'unknown error');
-      prices[sym] = null;
-    }
-  });
+	const prices = {};
+	results.forEach((result, i) => {
+		const sym = symbols[i];
+		if (result.status === 'fulfilled' && result.value) {
+			const q = result.value;
+			prices[sym] = {
+				price: q.regularMarketPrice ?? null,
+				previousClose: q.regularMarketPreviousClose ?? null,
+				change: q.regularMarketChange ?? null,
+				changePct: q.regularMarketChangePercent ?? null,
+				currency: q.currency ?? 'USD',
+				shortName: q.shortName ?? sym,
+				longName: q.longName ?? null,
+				marketState: q.marketState ?? 'CLOSED',
+				updatedAt: new Date().toISOString(),
+			};
+		} else {
+			console.warn(
+				`[priceService] Failed to fetch ${sym}:`,
+				result.reason?.message ?? 'unknown error',
+			);
+			prices[sym] = null;
+		}
+	});
 
-  return prices;
+	return prices;
 }
 
 /**
@@ -74,36 +77,36 @@ async function fetchQuotes(symbols) {
  * @returns {Promise<Object>}
  */
 async function getPrices(symbols) {
-  // An in-flight fetch may cover only some of these symbols, so wait for it
-  // and then fetch whatever is still missing.
-  while (pendingFetch) {
-    await pendingFetch;
-  }
+	// An in-flight fetch may cover only some of these symbols, so wait for it
+	// and then fetch whatever is still missing.
+	while (pendingFetch) {
+		await pendingFetch;
+	}
 
-  const missing = isCacheValid()
-    // A null entry is a failed quote, so it's retried rather than trusted.
-    ? symbols.filter(s => cache.prices[s] == null)
-    : symbols;
-  if (missing.length === 0) {
-    return cache.prices;
-  }
+	const missing = isCacheValid()
+		? // A null entry is a failed quote, so it's retried rather than trusted.
+			symbols.filter((s) => cache.prices[s] == null)
+		: symbols;
+	if (missing.length === 0) {
+		return cache.prices;
+	}
 
-  console.log(`[priceService] Refreshing prices for: ${missing.join(', ')}`);
+	console.log(`[priceService] Refreshing prices for: ${missing.join(', ')}`);
 
-  // Topping up a valid cache keeps its original timestamp, so the older
-  // prices still expire on schedule.
-  const fetchedAt = isCacheValid() ? cache.fetchedAt : new Date();
-  pendingFetch = fetchQuotes(missing)
-    .then(fresh => {
-      cache.prices    = { ...cache.prices, ...fresh };
-      cache.fetchedAt = fetchedAt;
-    })
-    .finally(() => {
-      pendingFetch = null;
-    });
+	// Topping up a valid cache keeps its original timestamp, so the older
+	// prices still expire on schedule.
+	const fetchedAt = isCacheValid() ? cache.fetchedAt : new Date();
+	pendingFetch = fetchQuotes(missing)
+		.then((fresh) => {
+			cache.prices = { ...cache.prices, ...fresh };
+			cache.fetchedAt = fetchedAt;
+		})
+		.finally(() => {
+			pendingFetch = null;
+		});
 
-  await pendingFetch;
-  return cache.prices;
+	await pendingFetch;
+	return cache.prices;
 }
 
 const BASE_CURRENCY = 'GBP';
@@ -119,36 +122,40 @@ const BASE_CURRENCY = 'GBP';
  * @returns {Promise<Object>}
  */
 async function getFxRates(currencies) {
-  const foreign = [...new Set(currencies)].filter(c => c && c !== BASE_CURRENCY);
-  if (foreign.length === 0) return {};
+	const foreign = [...new Set(currencies)].filter((c) => c && c !== BASE_CURRENCY);
+	if (foreign.length === 0) {
+		return {};
+	}
 
-  const pairFor = c => `${c}${BASE_CURRENCY}=X`;
-  const quotes = await getPrices(foreign.map(pairFor));
+	const pairFor = (c) => `${c}${BASE_CURRENCY}=X`;
+	const quotes = await getPrices(foreign.map(pairFor));
 
-  const rates = {};
-  foreign.forEach(c => {
-    const rate = quotes[pairFor(c)]?.price;
-    if (Number.isFinite(rate) && rate > 0) {
-      rates[c] = rate;
-    } else {
-      console.warn(`[priceService] No ${pairFor(c)} rate available; ${c} holdings can't be converted.`);
-    }
-  });
-  return rates;
+	const rates = {};
+	foreign.forEach((c) => {
+		const rate = quotes[pairFor(c)]?.price;
+		if (Number.isFinite(rate) && rate > 0) {
+			rates[c] = rate;
+		} else {
+			console.warn(
+				`[priceService] No ${pairFor(c)} rate available; ${c} holdings can't be converted.`,
+			);
+		}
+	});
+	return rates;
 }
 
 function invalidateCache() {
-  cache.fetchedAt = null;
-  console.log('[priceService] Cache invalidated.');
+	cache.fetchedAt = null;
+	console.log('[priceService] Cache invalidated.');
 }
 
 function cacheStatus() {
-  return {
-    valid:     isCacheValid(),
-    fetchedAt: cache.fetchedAt?.toISOString() ?? null,
-    symbols:   Object.keys(cache.prices),
-    ttlMs:     CACHE_TTL_MS
-  };
+	return {
+		valid: isCacheValid(),
+		fetchedAt: cache.fetchedAt?.toISOString() ?? null,
+		symbols: Object.keys(cache.prices),
+		ttlMs: CACHE_TTL_MS,
+	};
 }
 
 module.exports = { getPrices, getFxRates, invalidateCache, cacheStatus, BASE_CURRENCY };

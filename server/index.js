@@ -2,7 +2,13 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const performanceData = require('../data/performance');
-const { getPrices, getFxRates, invalidateCache, cacheStatus, BASE_CURRENCY } = require('./priceService');
+const {
+	getPrices,
+	getFxRates,
+	invalidateCache,
+	cacheStatus,
+	BASE_CURRENCY,
+} = require('./priceService');
 require('dotenv').config();
 
 const app = express();
@@ -16,7 +22,7 @@ app.use(express.json());
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const readPortfolioFile = () =>
-  JSON.parse(fs.readFileSync(path.join(__dirname, '../data/portfolio.json')));
+	JSON.parse(fs.readFileSync(path.join(__dirname, '../data/portfolio.json')));
 
 /**
  * Extract every unique ticker from portfolio.json.
@@ -24,8 +30,8 @@ const readPortfolioFile = () =>
  * will resolve them correctly.
  */
 const getSymbols = () => {
-  const data = readPortfolioFile();
-  return [...new Set(data.stocks.map(s => s.symbol))];
+	const data = readPortfolioFile();
+	return [...new Set(data.stocks.map((s) => s.symbol))];
 };
 
 /**
@@ -33,13 +39,15 @@ const getSymbols = () => {
  * so the trend can be shown without revealing the amounts.
  */
 const buildDividendIndex = (dividends) => {
-  const years = Object.keys(dividends).sort((a, b) => Number(a) - Number(b));
-  const base = years.map(year => Number(dividends[year]) || 0).find(total => total > 0);
-  if (!base) return {};
+	const years = Object.keys(dividends).sort((a, b) => Number(a) - Number(b));
+	const base = years.map((year) => Number(dividends[year]) || 0).find((total) => total > 0);
+	if (!base) {
+		return {};
+	}
 
-  return Object.fromEntries(
-    years.map(year => [year, ((Number(dividends[year]) || 0) / base) * 100])
-  );
+	return Object.fromEntries(
+		years.map((year) => [year, ((Number(dividends[year]) || 0) / base) * 100]),
+	);
 };
 
 /**
@@ -48,21 +56,23 @@ const buildDividendIndex = (dividends) => {
  * fall back to treating every .L ticker as pence, which is true of most
  * LSE shares but not of GBP- or USD-quoted ETFs: give those a `currency`.
  */
-const storedInPence = stock =>
-  stock.currency ? stock.currency === 'GBp' : stock.symbol.toLowerCase().endsWith('.l');
+const storedInPence = (stock) =>
+	stock.currency ? stock.currency === 'GBp' : stock.symbol.toLowerCase().endsWith('.l');
 
 /**
  * Whether the price we're about to use is in pence: a live quote reports
  * its own currency, otherwise the stored-price rule applies.
  */
 const priceInPence = (stock, liveQuote) =>
-  liveQuote?.price != null ? liveQuote.currency === 'GBp' : storedInPence(stock);
+	liveQuote?.price != null ? liveQuote.currency === 'GBp' : storedInPence(stock);
 
 /** The currency a holding's (pounds-adjusted) current price is in. */
 const holdingCurrency = (stock, liveQuote) => {
-  if (priceInPence(stock, liveQuote)) return 'GBP';
-  const quoted = liveQuote?.price != null ? liveQuote.currency : stock.currency;
-  return quoted || 'USD';
+	if (priceInPence(stock, liveQuote)) {
+		return 'GBP';
+	}
+	const quoted = liveQuote?.price != null ? liveQuote.currency : stock.currency;
+	return quoted || 'USD';
 };
 
 /**
@@ -75,159 +85,179 @@ const holdingCurrency = (stock, liveQuote) => {
  * sector weights and yields compare like with like; per-stock prices stay
  * in their own currency.
  */
-const buildPortfolio = (data, livePrices = {}, fxRates = {}, { showDividendValues = false } = {}) => {
-  const totals = {};
-  const unconvertedSymbols = [];
-  let currencyConverted = false;
-  const stocksBySector = {};
-  let totalValue = 0;
-  let totalCostBasis = 0;
-  let totalAnnualDividends = 0;
+const buildPortfolio = (
+	data,
+	livePrices = {},
+	fxRates = {},
+	{ showDividendValues = false } = {},
+) => {
+	const totals = {};
+	const unconvertedSymbols = [];
+	let currencyConverted = false;
+	const stocksBySector = {};
+	let totalValue = 0;
+	let totalCostBasis = 0;
+	let totalAnnualDividends = 0;
 
-  data.stocks.forEach(stock => {
-    const liveQuote = livePrices[stock.symbol];
-    const isPence = priceInPence(stock, liveQuote);
+	data.stocks.forEach((stock) => {
+		const liveQuote = livePrices[stock.symbol];
+		const isPence = priceInPence(stock, liveQuote);
 
-    // Resolve the current price: live → stored
-    let rawPrice = stock.currentPrice;
-    if (liveQuote?.price != null) {
-      rawPrice = liveQuote.price;
-    }
+		// Resolve the current price: live → stored
+		let rawPrice = stock.currentPrice;
+		if (liveQuote?.price != null) {
+			rawPrice = liveQuote.price;
+		}
 
-    // Determine the display name: prefer live API names, but skip them if they're
-    // just the ticker symbol and Fall back to the name in portfolio.json, then the symbol.
-    const apiLong  = liveQuote?.longName  && liveQuote.longName  !== stock.symbol ? liveQuote.longName  : null
-    const apiShort = liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null
-    const companyName = apiLong || apiShort || stock.name || stock.symbol;
+		// Determine the display name: prefer live API names, but skip them if they're
+		// just the ticker symbol and Fall back to the name in portfolio.json, then the symbol.
+		const apiLong =
+			liveQuote?.longName && liveQuote.longName !== stock.symbol ? liveQuote.longName : null;
+		const apiShort =
+			liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null;
+		const companyName = apiLong || apiShort || stock.name || stock.symbol;
 
-    const currentPrice = isPence ? rawPrice / 100 : rawPrice;
-    const currency = holdingCurrency(stock, liveQuote);
+		const currentPrice = isPence ? rawPrice / 100 : rawPrice;
+		const currency = holdingCurrency(stock, liveQuote);
 
-    // Totals are only meaningful in one currency. A holding we can't
-    // convert is left out of them and reported, rather than mixed in.
-    const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
-    if (rate == null) {
-      unconvertedSymbols.push(stock.symbol);
-      return;
-    }
-    if (currency !== BASE_CURRENCY) currencyConverted = true;
-    const value = stock.quantity * currentPrice * rate;
+		// Totals are only meaningful in one currency. A holding we can't
+		// convert is left out of them and reported, rather than mixed in.
+		const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
+		if (rate == null) {
+			unconvertedSymbols.push(stock.symbol);
+			return;
+		}
+		if (currency !== BASE_CURRENCY) {
+			currencyConverted = true;
+		}
+		const value = stock.quantity * currentPrice * rate;
 
-    totals[stock.sector] = (totals[stock.sector] || 0) + value;
-    if (!stocksBySector[stock.sector]) stocksBySector[stock.sector] = [];
-    stocksBySector[stock.sector].push({
-      symbol: stock.symbol,
-      companyName,
-      value,
-      currentPrice,
-      currency
-    });
-    totalValue += value;
+		totals[stock.sector] = (totals[stock.sector] || 0) + value;
+		if (!stocksBySector[stock.sector]) {
+			stocksBySector[stock.sector] = [];
+		}
+		stocksBySector[stock.sector].push({
+			symbol: stock.symbol,
+			companyName,
+			value,
+			currentPrice,
+			currency,
+		});
+		totalValue += value;
 
-    const quantity = Number(stock.quantity);
-    const purchasePrice = Number(stock.purchasePrice);
-    if (Number.isFinite(quantity) && Number.isFinite(purchasePrice)) {
-      // Converted at today's rate, not the rate on the purchase date, so
-      // yield on cost for foreign holdings is an estimate.
-      const nativeCost = storedInPence(stock) ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
-      totalCostBasis += nativeCost * rate;
-    }
-    totalAnnualDividends += Number(stock.annualDividend) || 0;
-  });
+		const quantity = Number(stock.quantity);
+		const purchasePrice = Number(stock.purchasePrice);
+		if (Number.isFinite(quantity) && Number.isFinite(purchasePrice)) {
+			// Converted at today's rate, not the rate on the purchase date, so
+			// yield on cost for foreign holdings is an estimate.
+			const nativeCost = storedInPence(stock)
+				? (quantity * purchasePrice) / 100
+				: quantity * purchasePrice;
+			totalCostBasis += nativeCost * rate;
+		}
+		totalAnnualDividends += Number(stock.annualDividend) || 0;
+	});
 
-  const sectors = {};
-  const sectorDetails = {};
-  Object.keys(totals).forEach(sector => {
-    sectors[sector] = ((totals[sector] / totalValue) * 100).toFixed(2);
-    sectorDetails[sector] = stocksBySector[sector].map(s => ({
-      symbol: s.symbol,
-      companyName: s.companyName,
-      percentage: ((s.value / totalValue) * 100).toFixed(2),
-      sectorPercentage: ((s.value / totals[sector]) * 100).toFixed(2),
-      currentPrice: s.currentPrice,
-      currency: s.currency
-    }));
-  });
+	const sectors = {};
+	const sectorDetails = {};
+	Object.keys(totals).forEach((sector) => {
+		sectors[sector] = ((totals[sector] / totalValue) * 100).toFixed(2);
+		sectorDetails[sector] = stocksBySector[sector].map((s) => ({
+			symbol: s.symbol,
+			companyName: s.companyName,
+			percentage: ((s.value / totalValue) * 100).toFixed(2),
+			sectorPercentage: ((s.value / totals[sector]) * 100).toFixed(2),
+			currentPrice: s.currentPrice,
+			currency: s.currency,
+		}));
+	});
 
-  // Dividend yield rows, also using live prices where available.
-  // Only percentages leave the server: absolute holding values would
-  // reveal the portfolio's size to anyone inspecting the API response.
-  const dividendRows = data.stocks
-    .filter(stock => stock.annualDividend && stock.annualDividend > 0)
-    .map(stock => {
-      const liveQuote = livePrices[stock.symbol];
+	// Dividend yield rows, also using live prices where available.
+	// Only percentages leave the server: absolute holding values would
+	// reveal the portfolio's size to anyone inspecting the API response.
+	const dividendRows = data.stocks
+		.filter((stock) => stock.annualDividend && stock.annualDividend > 0)
+		.map((stock) => {
+			const liveQuote = livePrices[stock.symbol];
 
-      let rawCurrent = stock.currentPrice;
-      if (liveQuote?.price != null) rawCurrent = liveQuote.price;
+			let rawCurrent = stock.currentPrice;
+			if (liveQuote?.price != null) {
+				rawCurrent = liveQuote.price;
+			}
 
-      // annualDividend is in GBP, so values must be too. Without a rate the
-      // values come out NaN and the row is filtered out below, rather than
-      // showing a yield worked out across two currencies; the holding is
-      // already listed in unconvertedSymbols by the loop above.
-      const currency = holdingCurrency(stock, liveQuote);
-      const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
-      const currentValue = (priceInPence(stock, liveQuote)
-        ? (stock.quantity * rawCurrent) / 100
-        : stock.quantity * rawCurrent) * rate;
-      const costBasis = (storedInPence(stock)
-        ? (stock.quantity * stock.purchasePrice) / 100
-        : stock.quantity * stock.purchasePrice) * rate;
+			// annualDividend is in GBP, so values must be too. Without a rate the
+			// values come out NaN and the row is filtered out below, rather than
+			// showing a yield worked out across two currencies; the holding is
+			// already listed in unconvertedSymbols by the loop above.
+			const currency = holdingCurrency(stock, liveQuote);
+			const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
+			const currentValue =
+				(priceInPence(stock, liveQuote)
+					? (stock.quantity * rawCurrent) / 100
+					: stock.quantity * rawCurrent) * rate;
+			const costBasis =
+				(storedInPence(stock)
+					? (stock.quantity * stock.purchasePrice) / 100
+					: stock.quantity * stock.purchasePrice) * rate;
 
-      const previousAnnualDividend =
-        stock.previousAnnualDividend ??
-        stock.previousYearDividend ??
-        stock.lastAnnualDividend ??
-        stock.priorAnnualDividend ??
-        null;
+			const previousAnnualDividend =
+				stock.previousAnnualDividend ??
+				stock.previousYearDividend ??
+				stock.lastAnnualDividend ??
+				stock.priorAnnualDividend ??
+				null;
 
-      return {
-        symbol: stock.symbol,
-        companyName: (liveQuote?.longName  && liveQuote.longName  !== stock.symbol ? liveQuote.longName  : null)
-                  || (liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null)
-                  || stock.name || stock.symbol,
-        annualDividend: stock.annualDividend,
-        previousAnnualDividend,
-        currentValue,
-        costBasis
-      };
-    })
-    .filter(row => row.currentValue > 0 && row.costBasis > 0);
+			return {
+				symbol: stock.symbol,
+				companyName:
+					(liveQuote?.longName && liveQuote.longName !== stock.symbol
+						? liveQuote.longName
+						: null) ||
+					(liveQuote?.shortName && liveQuote.shortName !== stock.symbol
+						? liveQuote.shortName
+						: null) ||
+					stock.name ||
+					stock.symbol,
+				annualDividend: stock.annualDividend,
+				previousAnnualDividend,
+				currentValue,
+				costBasis,
+			};
+		})
+		.filter((row) => row.currentValue > 0 && row.costBasis > 0);
 
-  // Shares are of the dividends listed here, so they add up to 100% even when
-  // a holding was left out of the portfolio totals for lack of an FX rate.
-  const listedDividends = dividendRows.reduce((sum, row) => sum + row.annualDividend, 0);
-  const dividendYields = dividendRows
-    .map(({ currentValue, costBasis, annualDividend, previousAnnualDividend, ...row }) => ({
-      ...row,
-      ...(showDividendValues && { annualDividend, previousAnnualDividend }),
-      dividendShare: listedDividends > 0 ? (annualDividend / listedDividends) * 100 : 0,
-      yield: (annualDividend / currentValue) * 100,
-      yieldOnCost: (annualDividend / costBasis) * 100
-    }));
+	// Shares are of the dividends listed here, so they add up to 100% even when
+	// a holding was left out of the portfolio totals for lack of an FX rate.
+	const listedDividends = dividendRows.reduce((sum, row) => sum + row.annualDividend, 0);
+	const dividendYields = dividendRows.map(
+		({ currentValue, costBasis, annualDividend, previousAnnualDividend, ...row }) => ({
+			...row,
+			...(showDividendValues && { annualDividend, previousAnnualDividend }),
+			dividendShare: listedDividends > 0 ? (annualDividend / listedDividends) * 100 : 0,
+			yield: (annualDividend / currentValue) * 100,
+			yieldOnCost: (annualDividend / costBasis) * 100,
+		}),
+	);
 
-  const dividends = data.dividends || {};
+	const dividends = data.dividends || {};
 
-  return {
-    sectors,
-    sectorDetails,
-    ...(showDividendValues && { dividends }),
-    dividendIndex:  buildDividendIndex(dividends),
-    config:         { showDividendValues },
-    growth:         data.growth    || {},
-    dividendYields,
-    portfolioDividendYield: totalValue > 0
-      ? (totalAnnualDividends / totalValue) * 100
-      : null,
-    portfolioYieldOnCost: totalCostBasis > 0
-      ? (totalAnnualDividends / totalCostBasis) * 100
-      : null,
-    stockCount:     data.stocks.length,
-    diversification: Object.keys(totals).length,
-    baseCurrency:   BASE_CURRENCY,
-    fxRates,
-    currencyConverted,
-    unconvertedSymbols
-  };
+	return {
+		sectors,
+		sectorDetails,
+		...(showDividendValues && { dividends }),
+		dividendIndex: buildDividendIndex(dividends),
+		config: { showDividendValues },
+		growth: data.growth || {},
+		dividendYields,
+		portfolioDividendYield: totalValue > 0 ? (totalAnnualDividends / totalValue) * 100 : null,
+		portfolioYieldOnCost: totalCostBasis > 0 ? (totalAnnualDividends / totalCostBasis) * 100 : null,
+		stockCount: data.stocks.length,
+		diversification: Object.keys(totals).length,
+		baseCurrency: BASE_CURRENCY,
+		fxRates,
+		currencyConverted,
+		unconvertedSymbols,
+	};
 };
 
 // ─── routes ─────────────────────────────────────────────────────────────────
@@ -238,30 +268,35 @@ const buildPortfolio = (data, livePrices = {}, fxRates = {}, { showDividendValue
  * Falls back gracefully to stored prices if Yahoo Finance is unavailable.
  */
 app.get('/api/portfolio', async (req, res) => {
-  try {
-    const data = readPortfolioFile();
-    let livePrices = {};
-    let fxRates = {};
+	try {
+		const data = readPortfolioFile();
+		let livePrices = {};
+		let fxRates = {};
 
-    try {
-      const symbols = getSymbols();
-      livePrices = await getPrices(symbols);
-    } catch (priceErr) {
-      console.warn('[/api/portfolio] Price fetch failed, using stored prices:', priceErr.message);
-    }
+		try {
+			const symbols = getSymbols();
+			livePrices = await getPrices(symbols);
+		} catch (priceErr) {
+			console.warn('[/api/portfolio] Price fetch failed, using stored prices:', priceErr.message);
+		}
 
-    try {
-      const currencies = data.stocks.map(s => holdingCurrency(s, livePrices[s.symbol]));
-      fxRates = await getFxRates(currencies);
-    } catch (fxErr) {
-      console.warn('[/api/portfolio] FX rate fetch failed, foreign holdings left unconverted:', fxErr.message);
-    }
+		try {
+			const currencies = data.stocks.map((s) => holdingCurrency(s, livePrices[s.symbol]));
+			fxRates = await getFxRates(currencies);
+		} catch (fxErr) {
+			console.warn(
+				'[/api/portfolio] FX rate fetch failed, foreign holdings left unconverted:',
+				fxErr.message,
+			);
+		}
 
-    res.json(buildPortfolio(data, livePrices, fxRates, { showDividendValues: SHOW_DIVIDEND_VALUES }));
-  } catch (error) {
-    console.error('[/api/portfolio]', error);
-    res.status(500).json({ error: 'Failed to load portfolio' });
-  }
+		res.json(
+			buildPortfolio(data, livePrices, fxRates, { showDividendValues: SHOW_DIVIDEND_VALUES }),
+		);
+	} catch (error) {
+		console.error('[/api/portfolio]', error);
+		res.status(500).json({ error: 'Failed to load portfolio' });
+	}
 });
 
 /**
@@ -276,14 +311,14 @@ app.get('/api/portfolio', async (req, res) => {
  * }
  */
 app.get('/api/prices', async (req, res) => {
-  try {
-    const symbols = getSymbols();
-    const prices  = await getPrices(symbols);
-    res.json({ prices, meta: cacheStatus() });
-  } catch (error) {
-    console.error('[/api/prices]', error);
-    res.status(500).json({ error: 'Failed to fetch live prices' });
-  }
+	try {
+		const symbols = getSymbols();
+		const prices = await getPrices(symbols);
+		res.json({ prices, meta: cacheStatus() });
+	} catch (error) {
+		console.error('[/api/prices]', error);
+		res.status(500).json({ error: 'Failed to fetch live prices' });
+	}
 });
 
 /**
@@ -292,15 +327,15 @@ app.get('/api/prices', async (req, res) => {
  * Handy for a "Refresh" button in the UI.
  */
 app.post('/api/prices/refresh', async (req, res) => {
-  try {
-    invalidateCache();
-    const symbols = getSymbols();
-    const prices  = await getPrices(symbols);
-    res.json({ message: 'Prices refreshed', prices, meta: cacheStatus() });
-  } catch (error) {
-    console.error('[/api/prices/refresh]', error);
-    res.status(500).json({ error: 'Refresh failed' });
-  }
+	try {
+		invalidateCache();
+		const symbols = getSymbols();
+		const prices = await getPrices(symbols);
+		res.json({ message: 'Prices refreshed', prices, meta: cacheStatus() });
+	} catch (error) {
+		console.error('[/api/prices/refresh]', error);
+		res.status(500).json({ error: 'Refresh failed' });
+	}
 });
 
 /**
@@ -308,35 +343,35 @@ app.post('/api/prices/refresh', async (req, res) => {
  * Returns cache metadata without triggering a fetch.
  */
 app.get('/api/prices/status', (_req, res) => {
-  res.json(cacheStatus());
+	res.json(cacheStatus());
 });
 
 // ─── performance (unchanged) ─────────────────────────────────────────────────
 
 const generatePerformance = (period = DEFAULT_PERIOD) =>
-  performanceData[period] || performanceData[DEFAULT_PERIOD];
+	performanceData[period] || performanceData[DEFAULT_PERIOD];
 
 app.get('/api/performance', (req, res) => {
-  try {
-    const period = req.query.period || DEFAULT_PERIOD;
-    res.json(generatePerformance(period));
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to load performance data' });
-  }
+	try {
+		const period = req.query.period || DEFAULT_PERIOD;
+		res.json(generatePerformance(period));
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to load performance data' });
+	}
 });
 
 // ─── boot ────────────────────────────────────────────────────────────────────
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    try {
-      const data = readPortfolioFile();
-      console.log(`Loaded ${data.stocks.length} stocks across portfolio.json`);
-    } catch (err) {
-      console.error('portfolio.json load failed:', err.message);
-    }
-  });
+	app.listen(PORT, () => {
+		console.log(`Server running on port ${PORT}`);
+		try {
+			const data = readPortfolioFile();
+			console.log(`Loaded ${data.stocks.length} stocks across portfolio.json`);
+		} catch (err) {
+			console.error('portfolio.json load failed:', err.message);
+		}
+	});
 }
 
 module.exports = { app, buildPortfolio };
