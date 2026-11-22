@@ -78,7 +78,7 @@ Edit `data/portfolio.json` with your stock holdings:
 
 > **Dividend fields**: Only include `annualDividend` on stocks that pay a dividend. This should be the **total pounds received** for that holding in the year, not a per-share figure. Stocks without this field are excluded from the yield table automatically.
 
-> **Dividend amounts**: By default dividends are shown only as percentages (share of dividends per holding, and each year as a % of the first year), and the API does not send £ amounts at all. To show £ amounts, set `SHOW_DIVIDEND_VALUES=true` in `.env` and restart the server. The dividend section then gets a £ / % toggle, and the monthly/daily averages chart appears in £ mode.
+> **Dividend amounts**: By default dividends are shown only as percentages (share of dividends per holding, and growth on the previous year), and the API does not send £ amounts at all. To show £ amounts, set `SHOW_DIVIDEND_VALUES=true` in `.env` and restart the server. The dividend section then gets a £ / % toggle, and the annual dividends bar chart and monthly/daily averages chart appear in £ mode. Year-on-year dividend growth is always available from the Dividend Growth view of the yearly growth chart.
 
 > **UK stocks (LSE)**: Symbols ending in `.l` are automatically detected as priced in pence. Both current yield and yield on cost are adjusted accordingly — no manual conversion needed.
 
@@ -252,15 +252,17 @@ Returns mock historical performance data for charts
   - Responsive design
 
 ### DividendSummary.vue
-**Purpose**: Bar chart of annual dividends (as £ totals or as a % of the first year) plus a yield-per-holding table
+**Purpose**: Bar chart of annual £ dividend totals (£ mode only), the latest year's growth on the year before, an income vs allocation chart by sector (always in % mode; a "By sector" tab in £ mode), and a yield-per-holding table
 - **Props**: 
   - `dividends` (Object) - Yearly dividend £ totals (only sent when `SHOW_DIVIDEND_VALUES=true`)
   - `dividendIndex` (Object) - Yearly dividends as a % of the first year
   - `dividendYields` (Array) - Per-stock `{ symbol, dividendShare, yield, yieldOnCost }`, plus `annualDividend` when £ values are on
+  - `sectorIncome` (Array) - `{ sector, income, allocation }` per sector, all percentages, worked out by `incomeVsAllocation.js`
   - `showDividendValues` (Boolean) - Whether the £ / % toggle is offered
   - `mode` (String, `v-model:mode`) - `'value'` or `'percent'`
 - **Features**: 
   - Interactive bar chart with data labels
+  - Income vs allocation (`IncomeVsAllocation.vue`): each sector's share of dividends next to its share of the portfolio, so you can see which sectors do the heavy lifting for income
   - Total dividend calculation (£ mode) or year-on-year growth (% mode)
   - Yield per holding table sorted highest to lowest, colour-coded: green ≥5%, amber 2–5%, grey <2%
   - Yield on Cost column showing return relative to purchase price, with ↑/↓ indicator vs current yield
