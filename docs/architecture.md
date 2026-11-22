@@ -34,7 +34,7 @@ App.vue — fetches the endpoints, holds dark mode and the £ / % dividend mode
    ├─ stat chips (holdings, sectors, best/worst year, yields, CAGR, top holding)
    ├─ TotalGrowth.vue      (portfolio and dividend growth by year)
    ├─ SectorChart.vue      (allocation pie with per-sector breakdown)
-   ├─ DividendSummary.vue  (annual dividends + yield per holding table)
+   ├─ DividendSummary.vue  (income vs allocation by sector, plus a by-year £ chart tab in £ mode; yield per holding table)
    ├─ DividendChart.vue    (monthly/daily averages, £ mode only)
    └─ PerformanceChart.vue (imported but not currently shown)
 ```
