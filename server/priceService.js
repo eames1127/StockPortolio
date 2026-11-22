@@ -74,21 +74,29 @@ async function fetchQuotes(symbols) {
  * @returns {Promise<Object>}
  */
 async function getPrices(symbols) {
-  if (isCacheValid() && symbols.every(s => s in cache.prices)) {
-    return cache.prices;
-  }
-
-  if (pendingFetch) {
+  // An in-flight fetch may cover only some of these symbols, so wait for it
+  // and then fetch whatever is still missing.
+  while (pendingFetch) {
     await pendingFetch;
+  }
+
+  const missing = isCacheValid()
+    // A null entry is a failed quote, so it's retried rather than trusted.
+    ? symbols.filter(s => cache.prices[s] == null)
+    : symbols;
+  if (missing.length === 0) {
     return cache.prices;
   }
 
-  console.log(`[priceService] Refreshing prices for: ${symbols.join(', ')}`);
+  console.log(`[priceService] Refreshing prices for: ${missing.join(', ')}`);
 
-  pendingFetch = fetchQuotes(symbols)
+  // Topping up a valid cache keeps its original timestamp, so the older
+  // prices still expire on schedule.
+  const fetchedAt = isCacheValid() ? cache.fetchedAt : new Date();
+  pendingFetch = fetchQuotes(missing)
     .then(fresh => {
       cache.prices    = { ...cache.prices, ...fresh };
-      cache.fetchedAt = new Date();
+      cache.fetchedAt = fetchedAt;
     })
     .finally(() => {
       pendingFetch = null;
@@ -96,6 +104,37 @@ async function getPrices(symbols) {
 
   await pendingFetch;
   return cache.prices;
+}
+
+const BASE_CURRENCY = 'GBP';
+
+/**
+ * Rates for converting each currency into GBP, e.g. { USD: 0.79 }.
+ * Fetched as Yahoo FX pairs (USDGBP=X) through getPrices, so they share the
+ * price cache and TTL: values and rates are a snapshot from the same fetch.
+ * A currency with no available rate is left out so callers can flag it
+ * rather than guess.
+ *
+ * @param {string[]} currencies
+ * @returns {Promise<Object>}
+ */
+async function getFxRates(currencies) {
+  const foreign = [...new Set(currencies)].filter(c => c && c !== BASE_CURRENCY);
+  if (foreign.length === 0) return {};
+
+  const pairFor = c => `${c}${BASE_CURRENCY}=X`;
+  const quotes = await getPrices(foreign.map(pairFor));
+
+  const rates = {};
+  foreign.forEach(c => {
+    const rate = quotes[pairFor(c)]?.price;
+    if (Number.isFinite(rate) && rate > 0) {
+      rates[c] = rate;
+    } else {
+      console.warn(`[priceService] No ${pairFor(c)} rate available; ${c} holdings can't be converted.`);
+    }
+  });
+  return rates;
 }
 
 function invalidateCache() {
@@ -112,4 +151,4 @@ function cacheStatus() {
   };
 }
 
-module.exports = { getPrices, invalidateCache, cacheStatus };
+module.exports = { getPrices, getFxRates, invalidateCache, cacheStatus, BASE_CURRENCY };

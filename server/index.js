@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const performanceData = require('../data/performance');
-const { getPrices, invalidateCache, cacheStatus } = require('./priceService');
+const { getPrices, getFxRates, invalidateCache, cacheStatus, BASE_CURRENCY } = require('./priceService');
 require('dotenv').config();
 
 const app = express();
@@ -43,23 +43,50 @@ const buildDividendIndex = (dividends) => {
 };
 
 /**
+ * Whether prices stored in portfolio.json for this stock are in pence.
+ * An explicit `currency` field wins ('GBp' means pence). Without one we
+ * fall back to treating every .L ticker as pence, which is true of most
+ * LSE shares but not of GBP- or USD-quoted ETFs: give those a `currency`.
+ */
+const storedInPence = stock =>
+  stock.currency ? stock.currency === 'GBp' : stock.symbol.toLowerCase().endsWith('.l');
+
+/**
+ * Whether the price we're about to use is in pence: a live quote reports
+ * its own currency, otherwise the stored-price rule applies.
+ */
+const priceInPence = (stock, liveQuote) =>
+  liveQuote?.price != null ? liveQuote.currency === 'GBp' : storedInPence(stock);
+
+/** The currency a holding's (pounds-adjusted) current price is in. */
+const holdingCurrency = (stock, liveQuote) => {
+  if (priceInPence(stock, liveQuote)) return 'GBP';
+  const quoted = liveQuote?.price != null ? liveQuote.currency : stock.currency;
+  return quoted || 'USD';
+};
+
+/**
  * Build the full portfolio response.
  * If livePrices is supplied (symbol → quote), currentPrice is overridden
  * with the live value; otherwise falls back to the stored price.
  *
- * UK stocks quoted in pence (GBp) are divided by 100 so everything is
- * in the stock's base currency (GBP).
+ * UK stocks quoted in pence (GBp) are divided by 100. Values and cost
+ * basis are then converted to GBP using fxRates (currency → GBP rate) so
+ * sector weights and yields compare like with like; per-stock prices stay
+ * in their own currency.
  */
-const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = {}) => {
+const buildPortfolio = (data, livePrices = {}, fxRates = {}, { showDividendValues = false } = {}) => {
   const totals = {};
+  const unconvertedSymbols = [];
+  let currencyConverted = false;
   const stocksBySector = {};
   let totalValue = 0;
   let totalCostBasis = 0;
   let totalAnnualDividends = 0;
 
   data.stocks.forEach(stock => {
-    const isPence = stock.symbol.toLowerCase().endsWith('.l');
     const liveQuote = livePrices[stock.symbol];
+    const isPence = priceInPence(stock, liveQuote);
 
     // Resolve the current price: live → stored
     let rawPrice = stock.currentPrice;
@@ -73,10 +100,18 @@ const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = 
     const apiShort = liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null
     const companyName = apiLong || apiShort || stock.name || stock.symbol;
 
-    // Yahoo Finance returns UK prices in pence; convert to pounds
     const currentPrice = isPence ? rawPrice / 100 : rawPrice;
-    const currency = isPence ? 'GBP' : (liveQuote?.currency || 'USD');
-    const value = stock.quantity * currentPrice;
+    const currency = holdingCurrency(stock, liveQuote);
+
+    // Totals are only meaningful in one currency. A holding we can't
+    // convert is left out of them and reported, rather than mixed in.
+    const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
+    if (rate == null) {
+      unconvertedSymbols.push(stock.symbol);
+      return;
+    }
+    if (currency !== BASE_CURRENCY) currencyConverted = true;
+    const value = stock.quantity * currentPrice * rate;
 
     totals[stock.sector] = (totals[stock.sector] || 0) + value;
     if (!stocksBySector[stock.sector]) stocksBySector[stock.sector] = [];
@@ -92,7 +127,10 @@ const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = 
     const quantity = Number(stock.quantity);
     const purchasePrice = Number(stock.purchasePrice);
     if (Number.isFinite(quantity) && Number.isFinite(purchasePrice)) {
-      totalCostBasis += isPence ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
+      // Converted at today's rate, not the rate on the purchase date, so
+      // yield on cost for foreign holdings is an estimate.
+      const nativeCost = storedInPence(stock) ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
+      totalCostBasis += nativeCost * rate;
     }
     totalAnnualDividends += Number(stock.annualDividend) || 0;
   });
@@ -114,19 +152,18 @@ const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = 
   // Dividend yield rows, also using live prices where available.
   // Only percentages leave the server: absolute holding values would
   // reveal the portfolio's size to anyone inspecting the API response.
-  const dividendYields = data.stocks
+  const dividendRows = data.stocks
     .filter(stock => stock.annualDividend && stock.annualDividend > 0)
     .map(stock => {
-      const isPence = stock.symbol.toLowerCase().endsWith('.l');
       const liveQuote = livePrices[stock.symbol];
 
       let rawCurrent = stock.currentPrice;
       if (liveQuote?.price != null) rawCurrent = liveQuote.price;
 
-      const currentValue = isPence
+      const currentValue = priceInPence(stock, liveQuote)
         ? (stock.quantity * rawCurrent) / 100
         : stock.quantity * rawCurrent;
-      const costBasis = isPence
+      const costBasis = storedInPence(stock)
         ? (stock.quantity * stock.purchasePrice) / 100
         : stock.quantity * stock.purchasePrice;
 
@@ -148,11 +185,16 @@ const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = 
         costBasis
       };
     })
-    .filter(row => row.currentValue > 0 && row.costBasis > 0)
+    .filter(row => row.currentValue > 0 && row.costBasis > 0);
+
+  // Shares are of the dividends listed here, so they add up to 100% even when
+  // a holding was left out of the portfolio totals for lack of an FX rate.
+  const listedDividends = dividendRows.reduce((sum, row) => sum + row.annualDividend, 0);
+  const dividendYields = dividendRows
     .map(({ currentValue, costBasis, annualDividend, previousAnnualDividend, ...row }) => ({
       ...row,
       ...(showDividendValues && { annualDividend, previousAnnualDividend }),
-      dividendShare: totalAnnualDividends > 0 ? (annualDividend / totalAnnualDividends) * 100 : 0,
+      dividendShare: listedDividends > 0 ? (annualDividend / listedDividends) * 100 : 0,
       yield: (annualDividend / currentValue) * 100,
       yieldOnCost: (annualDividend / costBasis) * 100
     }));
@@ -174,7 +216,11 @@ const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = 
       ? (totalAnnualDividends / totalCostBasis) * 100
       : null,
     stockCount:     data.stocks.length,
-    diversification: Object.keys(totals).length
+    diversification: Object.keys(totals).length,
+    baseCurrency:   BASE_CURRENCY,
+    fxRates,
+    currencyConverted,
+    unconvertedSymbols
   };
 };
 
@@ -189,6 +235,7 @@ app.get('/api/portfolio', async (req, res) => {
   try {
     const data = readPortfolioFile();
     let livePrices = {};
+    let fxRates = {};
 
     try {
       const symbols = getSymbols();
@@ -197,7 +244,14 @@ app.get('/api/portfolio', async (req, res) => {
       console.warn('[/api/portfolio] Price fetch failed, using stored prices:', priceErr.message);
     }
 
-    res.json(buildPortfolio(data, livePrices, { showDividendValues: SHOW_DIVIDEND_VALUES }));
+    try {
+      const currencies = data.stocks.map(s => holdingCurrency(s, livePrices[s.symbol]));
+      fxRates = await getFxRates(currencies);
+    } catch (fxErr) {
+      console.warn('[/api/portfolio] FX rate fetch failed, foreign holdings left unconverted:', fxErr.message);
+    }
+
+    res.json(buildPortfolio(data, livePrices, fxRates, { showDividendValues: SHOW_DIVIDEND_VALUES }));
   } catch (error) {
     console.error('[/api/portfolio]', error);
     res.status(500).json({ error: 'Failed to load portfolio' });

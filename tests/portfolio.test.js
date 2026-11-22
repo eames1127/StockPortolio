@@ -9,7 +9,7 @@ describe('Portfolio Integration', () => {
         { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' },
         { symbol: 'MSFT', quantity: 10, purchasePrice: 10, currentPrice: 10, sector: 'Technology' }
       ]
-    });
+    }, {}, { USD: 1 });
 
     expect(result.portfolioDividendYield).toBeCloseTo(10 / 300 * 100);
     expect(result.portfolioYieldOnCost).toBe(5);
@@ -70,7 +70,7 @@ describe('Portfolio Integration', () => {
     });
 
     test('includes £ dividend amounts when enabled', () => {
-      const result = buildPortfolio(data, {}, { showDividendValues: true });
+      const result = buildPortfolio(data, {}, {}, { showDividendValues: true });
 
       expect(result.config).toEqual({ showDividendValues: true });
       expect(result.dividends).toEqual(data.dividends);

@@ -93,11 +93,11 @@
             <span class="stat-chip-detail">{{ worstPerformanceYear }}</span>
           </div>
           <div class="stat-chip">
-            <span class="stat-chip-label">Portfolio Dividend Yield</span>
+            <span class="stat-chip-label">Portfolio Dividend Yield <button v-if="currencyNote" type="button" class="estimate-marker" :title="currencyNote" :aria-label="currencyNote" :aria-expanded="String(showCurrencyNote)" @click="showCurrencyNote = !showCurrencyNote">≈</button></span>
             <span class="stat-chip-value">{{ portfolioDividendYield }}<span v-if="portfolioDividendYield !== '–'">%</span></span>
           </div>
           <div class="stat-chip">
-            <span class="stat-chip-label">Yield on Cost</span>
+            <span class="stat-chip-label">Yield on Cost <button v-if="currencyNote" type="button" class="estimate-marker" :title="currencyNote" :aria-label="currencyNote" :aria-expanded="String(showCurrencyNote)" @click="showCurrencyNote = !showCurrencyNote">≈</button></span>
             <span class="stat-chip-value">{{ portfolioYieldOnCost }}<span v-if="portfolioYieldOnCost !== '–'">%</span></span>
           </div>
           <div class="stat-chip">
@@ -106,11 +106,12 @@
             <span class="stat-chip-detail">{{ growthYearRange }}</span>
           </div>
           <div class="stat-chip">
-            <span class="stat-chip-label">Top Holding</span>
+            <span class="stat-chip-label">Top Holding <button v-if="currencyNote" type="button" class="estimate-marker" :title="currencyNote" :aria-label="currencyNote" :aria-expanded="String(showCurrencyNote)" @click="showCurrencyNote = !showCurrencyNote">≈</button></span>
             <span class="stat-chip-value">{{ topHoldingWeight }}%</span>
             <span class="stat-chip-detail">{{ topHoldingName }}</span>
           </div>
         </div>
+        <p v-if="currencyNote && showCurrencyNote" class="stat-footnote currency-note" role="note">{{ currencyNote }}</p>
         <p class="stat-footnote">Compound Annual Growth Rate (CAGR): the steady yearly return that would give the same overall result.</p>
 
         <!-- ── ROW 2: Growth chart full width ── -->
@@ -185,6 +186,7 @@
 
 <script>
 import { TIME_PERIODS, DEFAULT_PERIOD } from './constants.js'
+import { currencyNote } from './currencyNote.js'
 import SectorChart from './components/SectorChart.vue'
 import PerformanceChart from './components/PerformanceChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
@@ -204,10 +206,14 @@ export default {
       timePeriods: TIME_PERIODS,
       darkMode: false,
       dividendMode: 'percent',
-      refreshing: false
+      refreshing: false,
+      showCurrencyNote: false
     }
   },
   computed: {
+    currencyNote() {
+      return currencyNote(this.portfolioData)
+    },
     topHolding() {
       const holdings = Object.values(this.portfolioData.sectorDetails || {}).flat()
       return holdings.reduce((top, holding) => (
@@ -829,6 +835,11 @@ export default {
 .stat-chip-detail { font-size: 0.75rem; color: var(--text-muted); }
 .stat-chip-value.positive { color: var(--positive); }
 .stat-chip-value.negative { color: var(--negative); }
+.estimate-marker {
+  margin-left: 0.25rem; padding: 0 0.3rem; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg-stat); color: var(--text-muted); font: inherit; line-height: 1.3; cursor: help;
+}
+.estimate-marker:focus-visible { outline: 2px solid var(--text-muted); outline-offset: 1px; }
 .stat-footnote { margin: -0.75rem 0 0; font-size: 0.68rem; line-height: 1.4; color: var(--text-muted); }
 
 @media (min-width: 700px) {
