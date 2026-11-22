@@ -74,21 +74,28 @@ async function fetchQuotes(symbols) {
  * @returns {Promise<Object>}
  */
 async function getPrices(symbols) {
-  if (isCacheValid() && symbols.every(s => s in cache.prices)) {
-    return cache.prices;
-  }
-
-  if (pendingFetch) {
+  // An in-flight fetch may cover only some of these symbols, so wait for it
+  // and then fetch whatever is still missing.
+  while (pendingFetch) {
     await pendingFetch;
+  }
+
+  const missing = isCacheValid()
+    ? symbols.filter(s => !(s in cache.prices))
+    : symbols;
+  if (missing.length === 0) {
     return cache.prices;
   }
 
-  console.log(`[priceService] Refreshing prices for: ${symbols.join(', ')}`);
+  console.log(`[priceService] Refreshing prices for: ${missing.join(', ')}`);
 
-  pendingFetch = fetchQuotes(symbols)
+  // Topping up a valid cache keeps its original timestamp, so the older
+  // prices still expire on schedule.
+  const fetchedAt = isCacheValid() ? cache.fetchedAt : new Date();
+  pendingFetch = fetchQuotes(missing)
     .then(fresh => {
       cache.prices    = { ...cache.prices, ...fresh };
-      cache.fetchedAt = new Date();
+      cache.fetchedAt = fetchedAt;
     })
     .finally(() => {
       pendingFetch = null;
