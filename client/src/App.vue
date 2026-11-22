@@ -293,6 +293,7 @@
 <script>
 import { TIME_PERIODS, DEFAULT_PERIOD } from './constants.js'
 import { currencyNote } from './currencyNote.js'
+import { formatPrice } from './formatPrice.js'
 import SectorChart from './components/SectorChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
 import DividendChart from './components/DividendChart.vue'
@@ -491,19 +492,7 @@ export default {
 			}
 		},
 
-		/* Format a price in its native currency. Yahoo quotes LSE stocks in pence as 'GBp'. */
-		formatPrice(price, currency) {
-			if (price == null) {
-				return '–'
-			}
-			const fmt = (n) => parseFloat(n.toFixed(4)).toString()
-			if (currency === 'GBp') {
-				return `£${fmt(price / 100)}`
-			}
-			const symbols = { USD: '$', GBP: '£', EUR: '€' }
-			const sym = symbols[currency] || (currency ? `${currency} ` : '')
-			return `${sym}${fmt(price)}`
-		},
+		formatPrice,
 
 		formatQuoteLabel(symbol, quote) {
 			// Build a name map from already-resolved companyNames in portfolioData
