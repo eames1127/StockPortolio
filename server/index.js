@@ -8,6 +8,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const DEFAULT_PERIOD = '1Y';
+// Off unless explicitly enabled, so £ dividend amounts never leave the server by accident.
+const SHOW_DIVIDEND_VALUES = process.env.SHOW_DIVIDEND_VALUES === 'true';
 
 app.use(express.json());
 
@@ -27,6 +29,20 @@ const getSymbols = () => {
 };
 
 /**
+ * Express yearly dividend totals as a percentage of the first non-zero year,
+ * so the trend can be shown without revealing the amounts.
+ */
+const buildDividendIndex = (dividends) => {
+  const years = Object.keys(dividends).sort((a, b) => Number(a) - Number(b));
+  const base = years.map(year => Number(dividends[year]) || 0).find(total => total > 0);
+  if (!base) return {};
+
+  return Object.fromEntries(
+    years.map(year => [year, ((Number(dividends[year]) || 0) / base) * 100])
+  );
+};
+
+/**
  * Build the full portfolio response.
  * If livePrices is supplied (symbol → quote), currentPrice is overridden
  * with the live value; otherwise falls back to the stored price.
@@ -34,7 +50,7 @@ const getSymbols = () => {
  * UK stocks quoted in pence (GBp) are divided by 100 so everything is
  * in the stock's base currency (GBP).
  */
-const buildPortfolio = (data, livePrices = {}) => {
+const buildPortfolio = (data, livePrices = {}, { showDividendValues = false } = {}) => {
   const totals = {};
   const stocksBySector = {};
   let totalValue = 0;
@@ -133,16 +149,22 @@ const buildPortfolio = (data, livePrices = {}) => {
       };
     })
     .filter(row => row.currentValue > 0 && row.costBasis > 0)
-    .map(({ currentValue, costBasis, ...row }) => ({
+    .map(({ currentValue, costBasis, annualDividend, previousAnnualDividend, ...row }) => ({
       ...row,
-      yield: (row.annualDividend / currentValue) * 100,
-      yieldOnCost: (row.annualDividend / costBasis) * 100
+      ...(showDividendValues && { annualDividend, previousAnnualDividend }),
+      dividendShare: totalAnnualDividends > 0 ? (annualDividend / totalAnnualDividends) * 100 : 0,
+      yield: (annualDividend / currentValue) * 100,
+      yieldOnCost: (annualDividend / costBasis) * 100
     }));
+
+  const dividends = data.dividends || {};
 
   return {
     sectors,
     sectorDetails,
-    dividends:      data.dividends || {},
+    ...(showDividendValues && { dividends }),
+    dividendIndex:  buildDividendIndex(dividends),
+    config:         { showDividendValues },
     growth:         data.growth    || {},
     dividendYields,
     portfolioDividendYield: totalValue > 0
@@ -175,7 +197,7 @@ app.get('/api/portfolio', async (req, res) => {
       console.warn('[/api/portfolio] Price fetch failed, using stored prices:', priceErr.message);
     }
 
-    res.json(buildPortfolio(data, livePrices));
+    res.json(buildPortfolio(data, livePrices, { showDividendValues: SHOW_DIVIDEND_VALUES }));
   } catch (error) {
     console.error('[/api/portfolio]', error);
     res.status(500).json({ error: 'Failed to load portfolio' });

@@ -34,7 +34,7 @@
 
         <!-- ── ROW 0: About banner ── -->
         <div class="about-banner">
-          <p>An insight into my stock portfolio performance, diversification metrics, and dividend income streams — purposefully excluding total value or individual stock prices.</p>
+          <p>An insight into my stock portfolio performance, diversification metrics, and dividend income streams — purposefully excluding total portfolio value.</p>
         </div>
         <div v-if="Object.keys(livePrices).length" class="price-bar">
           <div class="price-ticker">
@@ -136,8 +136,11 @@
 
           <div class="card card--dividends">
             <DividendSummary
+              v-model:mode="dividendDisplayMode"
               :dividends="portfolioData.dividends || {}"
+              :dividend-index="portfolioData.dividendIndex || {}"
               :dividend-yields="portfolioData.dividendYields || []"
+              :show-dividend-values="showDividendValues"
               :dark-mode="darkMode"
             />
           </div>
@@ -152,7 +155,8 @@
         </div>
 
         <!-- ── ROW 4: Dividend Trends ── -->
-        <div class="card card--trends">
+        <!-- Averages only make sense as amounts, so this card is hidden in % mode -->
+        <div v-if="dividendDisplayMode === 'value'" class="card card--trends">
           <div class="card-head">
             <h2>Dividend Trends</h2>
             <span class="card-badge">Monthly &amp; Daily averages</span>
@@ -199,6 +203,7 @@ export default {
       selectedPeriod: DEFAULT_PERIOD,
       timePeriods: TIME_PERIODS,
       darkMode: false,
+      dividendMode: 'percent',
       refreshing: false
     }
   },
@@ -260,8 +265,24 @@ export default {
       const years = this.yearlyPerformance
       return years.length ? `${years[0].year}–${years[years.length - 1].year}` : '–'
     },
+    showDividendValues() {
+      return Boolean(this.portfolioData.config?.showDividendValues)
+    },
+    // The stored choice only applies while the server allows £ values.
+    dividendDisplayMode: {
+      get() {
+        return this.showDividendValues ? this.dividendMode : 'percent'
+      },
+      set(mode) {
+        this.dividendMode = mode
+        try {
+          localStorage.setItem('dividendMode', mode)
+        } catch (e) {}
+      }
+    },
     dividendGrowth() {
-      const dividendTotals = this.portfolioData.dividends || {}
+      // Growth is a ratio between years, so the index gives the same result as £ totals.
+      const dividendTotals = this.portfolioData.dividendIndex || {}
       const years = Object.keys(dividendTotals).sort((a, b) => Number(a) - Number(b))
       const growth = {}
 
@@ -282,6 +303,7 @@ export default {
     try {
       const stored = localStorage.getItem('darkMode')
       this.darkMode = stored === 'true'
+      this.dividendMode = localStorage.getItem('dividendMode') === 'value' ? 'value' : 'percent'
     } catch (e) {}
     await this.loadData()
   },

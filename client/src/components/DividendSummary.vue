@@ -1,11 +1,28 @@
 <template>
   <div class="dividend-summary">
-    <h3>Annual Dividends</h3>
+    <div class="dividend-head">
+      <h3>Annual Dividends</h3>
+      <div v-if="showDividendValues" class="mode-toggle" role="group" aria-label="Show dividends as">
+        <button
+          type="button"
+          :class="{ active: mode === 'value' }"
+          :aria-pressed="mode === 'value'"
+          @click="$emit('update:mode', 'value')"
+        >£</button>
+        <button
+          type="button"
+          :class="{ active: mode === 'percent' }"
+          :aria-pressed="mode === 'percent'"
+          @click="$emit('update:mode', 'percent')"
+        >%</button>
+      </div>
+    </div>
     <div class="chart-container">
       <Bar :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
     </div>
     <div class="total">
-      <span>Total: £{{ totalDividends.toFixed(2) }}</span>
+      <span v-if="showValues">Total: £{{ totalDividends.toFixed(2) }}</span>
+      <span v-else>Latest year vs previous</span>
       <span v-if="totalDividendGrowth != null" class="total-growth" :class="growthClass(totalDividendGrowth)">
         {{ formatGrowth(totalDividendGrowth) }}
       </span>
@@ -22,7 +39,7 @@
           <thead>
             <tr>
               <th>Holding</th>
-              <th>Annual Div.</th>
+              <th>{{ showValues ? 'Annual Div.' : 'Share of Dividends' }}</th>
               <th>Yield</th>
               <th>Yield on Cost</th>
               <th class="yield-bar-col"></th>
@@ -31,7 +48,9 @@
           <tbody>
             <tr v-for="holding in sortedYields" :key="holding.symbol">
               <td class="symbol">{{ holding.companyName && holding.companyName !== holding.symbol ? `${holding.companyName} (${holding.symbol})` : holding.symbol }}</td>
-              <td class="amount">£{{ holding.annualDividend.toFixed(2) }}</td>
+              <td class="amount">
+                {{ showValues ? `£${holding.annualDividend.toFixed(2)}` : `${holding.dividendShare.toFixed(2)}%` }}
+              </td>
               <td class="yield-pct" :class="yieldClass(holding.yield)">
                 {{ holding.yield.toFixed(2) }}%
               </td>
@@ -82,17 +101,39 @@ export default {
       type: Array,
       default: () => []
     },
+    dividendIndex: {
+      type: Object,
+      default: () => ({})
+    },
     darkMode: {
       type: Boolean,
       default: false
+    },
+    showDividendValues: {
+      type: Boolean,
+      default: false
+    },
+    mode: {
+      type: String,
+      default: 'percent',
+      validator: value => ['value', 'percent'].includes(value)
     }
   },
+  emits: ['update:mode'],
   computed: {
+    // The server only sends £ amounts when the setting is on, so both must agree.
+    showValues() {
+      return this.showDividendValues && this.mode === 'value'
+    },
+    // Yearly series to chart: £ totals, or each year as a % of the first year.
+    series() {
+      return this.showValues ? this.dividends : this.dividendIndex
+    },
     totalDividends() {
       return Object.values(this.dividends).reduce((sum, amount) => sum + amount, 0)
     },
     totalDividendGrowth() {
-      const years = Object.keys(this.dividends || {})
+      const years = Object.keys(this.series || {})
         .filter(year => year && !Number.isNaN(Number(year)))
         .sort((a, b) => Number(a) - Number(b))
 
@@ -100,8 +141,8 @@ export default {
 
       const latestYear = years[years.length - 1]
       const previousYear = years[years.length - 2]
-      const latestTotal = Number(this.dividends[latestYear]) || 0
-      const previousTotal = Number(this.dividends[previousYear]) || 0
+      const latestTotal = Number(this.series[latestYear]) || 0
+      const previousTotal = Number(this.series[previousYear]) || 0
 
       if (previousTotal === 0) return null
 
@@ -118,10 +159,10 @@ export default {
         : 1
     },
     chartData() {
-      if (!Object.keys(this.dividends).length) return { labels: [], datasets: [] }
+      if (!Object.keys(this.series).length) return { labels: [], datasets: [] }
 
-      const years = Object.keys(this.dividends).sort()
-      const amounts = years.map(year => this.dividends[year])
+      const years = Object.keys(this.series).sort()
+      const amounts = years.map(year => this.series[year])
 
       return {
         labels: years,
@@ -135,6 +176,9 @@ export default {
     },
     chartOptions() {
       const textColor = this.darkMode ? '#e5e7eb' : '#0b1220'
+      const format = (value, decimals) => this.showValues
+        ? `£${Number(value).toFixed(decimals)}`
+        : `${Number(value).toFixed(decimals)}%`
 
       return {
         responsive: true,
@@ -145,13 +189,13 @@ export default {
             titleColor: textColor,
             bodyColor: textColor,
             callbacks: {
-              label: (context) => `£${context.parsed.y.toFixed(2)}`
+              label: (context) => format(context.parsed.y, 2)
             }
           },
           datalabels: {
             color: textColor,
             font: { weight: 'bold', size: 11 },
-            formatter: (value) => `£${value.toFixed(0)}`,
+            formatter: (value) => format(value, 0),
             anchor: 'end',
             align: 'top',
             offset: 4
@@ -162,7 +206,7 @@ export default {
             beginAtZero: true,
             ticks: {
               color: textColor,
-              callback: (value) => `£${value}`
+              callback: (value) => format(value, 0)
             }
           }
         }
@@ -197,6 +241,34 @@ export default {
 </script>
 
 <style scoped>
+.dividend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mode-toggle {
+  display: inline-flex;
+  border: 1px solid var(--table-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mode-toggle button {
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mode-toggle button.active {
+  background: #28a745;
+  color: #fff;
+}
+
 /* Bridge App.vue tokens → legacy component tokens */
 .dividend-summary {
   --text-color:    var(--text, #0b1220);
