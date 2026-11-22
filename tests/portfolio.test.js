@@ -9,7 +9,7 @@ describe('Portfolio Integration', () => {
         { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' },
         { symbol: 'MSFT', quantity: 10, purchasePrice: 10, currentPrice: 10, sector: 'Technology' }
       ]
-    });
+    }, {}, { USD: 1 });
 
     expect(result.portfolioDividendYield).toBeCloseTo(10 / 300 * 100);
     expect(result.portfolioYieldOnCost).toBe(5);
