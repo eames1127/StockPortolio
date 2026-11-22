@@ -10,7 +10,8 @@ const globals = require('globals');
  */
 module.exports = [
 	{
-		ignores: ['**/node_modules/', 'client/dist/', 'coverage/'],
+		// .claude/ holds agent worktrees: other branches' checkouts, not this one's code.
+		ignores: ['**/node_modules/', 'client/dist/', 'coverage/', '.claude/'],
 	},
 	js.configs.recommended,
 	...vue.configs['flat/recommended'],
