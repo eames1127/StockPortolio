@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const performanceData = require('../data/performance');
-const { getPrices, invalidateCache, cacheStatus } = require('./priceService');
+const { getPrices, getFxRates, invalidateCache, cacheStatus, BASE_CURRENCY } = require('./priceService');
 require('dotenv').config();
 
 const app = express();
@@ -42,16 +42,27 @@ const storedInPence = stock =>
 const priceInPence = (stock, liveQuote) =>
   liveQuote?.price != null ? liveQuote.currency === 'GBp' : storedInPence(stock);
 
+/** The currency a holding's (pounds-adjusted) current price is in. */
+const holdingCurrency = (stock, liveQuote) => {
+  if (priceInPence(stock, liveQuote)) return 'GBP';
+  const quoted = liveQuote?.price != null ? liveQuote.currency : stock.currency;
+  return quoted || 'USD';
+};
+
 /**
  * Build the full portfolio response.
  * If livePrices is supplied (symbol → quote), currentPrice is overridden
  * with the live value; otherwise falls back to the stored price.
  *
- * UK stocks quoted in pence (GBp) are divided by 100 so everything is
- * in the stock's base currency (GBP).
+ * UK stocks quoted in pence (GBp) are divided by 100. Values and cost
+ * basis are then converted to GBP using fxRates (currency → GBP rate) so
+ * sector weights and yields compare like with like; per-stock prices stay
+ * in their own currency.
  */
-const buildPortfolio = (data, livePrices = {}) => {
+const buildPortfolio = (data, livePrices = {}, fxRates = {}) => {
   const totals = {};
+  const unconvertedSymbols = [];
+  let currencyConverted = false;
   const stocksBySector = {};
   let totalValue = 0;
   let totalCostBasis = 0;
@@ -74,9 +85,17 @@ const buildPortfolio = (data, livePrices = {}) => {
     const companyName = apiLong || apiShort || stock.name || stock.symbol;
 
     const currentPrice = isPence ? rawPrice / 100 : rawPrice;
-    const quotedCurrency = liveQuote?.price != null ? liveQuote.currency : stock.currency;
-    const currency = isPence ? 'GBP' : (quotedCurrency || 'USD');
-    const value = stock.quantity * currentPrice;
+    const currency = holdingCurrency(stock, liveQuote);
+
+    // Totals are only meaningful in one currency. A holding we can't
+    // convert is left out of them and reported, rather than mixed in.
+    const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
+    if (rate == null) {
+      unconvertedSymbols.push(stock.symbol);
+      return;
+    }
+    if (currency !== BASE_CURRENCY) currencyConverted = true;
+    const value = stock.quantity * currentPrice * rate;
 
     totals[stock.sector] = (totals[stock.sector] || 0) + value;
     if (!stocksBySector[stock.sector]) stocksBySector[stock.sector] = [];
@@ -92,7 +111,10 @@ const buildPortfolio = (data, livePrices = {}) => {
     const quantity = Number(stock.quantity);
     const purchasePrice = Number(stock.purchasePrice);
     if (Number.isFinite(quantity) && Number.isFinite(purchasePrice)) {
-      totalCostBasis += storedInPence(stock) ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
+      // Converted at today's rate, not the rate on the purchase date, so
+      // yield on cost for foreign holdings is an estimate.
+      const nativeCost = storedInPence(stock) ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
+      totalCostBasis += nativeCost * rate;
     }
     totalAnnualDividends += Number(stock.annualDividend) || 0;
   });
@@ -159,7 +181,11 @@ const buildPortfolio = (data, livePrices = {}) => {
       ? (totalAnnualDividends / totalCostBasis) * 100
       : null,
     stockCount:     data.stocks.length,
-    diversification: Object.keys(totals).length
+    diversification: Object.keys(totals).length,
+    baseCurrency:   BASE_CURRENCY,
+    fxRates,
+    currencyConverted,
+    unconvertedSymbols
   };
 };
 
@@ -174,6 +200,7 @@ app.get('/api/portfolio', async (req, res) => {
   try {
     const data = readPortfolioFile();
     let livePrices = {};
+    let fxRates = {};
 
     try {
       const symbols = getSymbols();
@@ -182,7 +209,14 @@ app.get('/api/portfolio', async (req, res) => {
       console.warn('[/api/portfolio] Price fetch failed, using stored prices:', priceErr.message);
     }
 
-    res.json(buildPortfolio(data, livePrices));
+    try {
+      const currencies = data.stocks.map(s => holdingCurrency(s, livePrices[s.symbol]));
+      fxRates = await getFxRates(currencies);
+    } catch (fxErr) {
+      console.warn('[/api/portfolio] FX rate fetch failed, foreign holdings left unconverted:', fxErr.message);
+    }
+
+    res.json(buildPortfolio(data, livePrices, fxRates));
   } catch (error) {
     console.error('[/api/portfolio]', error);
     res.status(500).json({ error: 'Failed to load portfolio' });

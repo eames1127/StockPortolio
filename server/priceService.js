@@ -106,6 +106,37 @@ async function getPrices(symbols) {
   return cache.prices;
 }
 
+const BASE_CURRENCY = 'GBP';
+
+/**
+ * Rates for converting each currency into GBP, e.g. { USD: 0.79 }.
+ * Fetched as Yahoo FX pairs (USDGBP=X) through getPrices, so they share the
+ * price cache and TTL: values and rates are a snapshot from the same fetch.
+ * A currency with no available rate is left out so callers can flag it
+ * rather than guess.
+ *
+ * @param {string[]} currencies
+ * @returns {Promise<Object>}
+ */
+async function getFxRates(currencies) {
+  const foreign = [...new Set(currencies)].filter(c => c && c !== BASE_CURRENCY);
+  if (foreign.length === 0) return {};
+
+  const pairFor = c => `${c}${BASE_CURRENCY}=X`;
+  const quotes = await getPrices(foreign.map(pairFor));
+
+  const rates = {};
+  foreign.forEach(c => {
+    const rate = quotes[pairFor(c)]?.price;
+    if (Number.isFinite(rate) && rate > 0) {
+      rates[c] = rate;
+    } else {
+      console.warn(`[priceService] No ${pairFor(c)} rate available; ${c} holdings can't be converted.`);
+    }
+  });
+  return rates;
+}
+
 function invalidateCache() {
   cache.fetchedAt = null;
   console.log('[priceService] Cache invalidated.');
@@ -120,4 +151,4 @@ function cacheStatus() {
   };
 }
 
-module.exports = { getPrices, invalidateCache, cacheStatus };
+module.exports = { getPrices, getFxRates, invalidateCache, cacheStatus, BASE_CURRENCY };
