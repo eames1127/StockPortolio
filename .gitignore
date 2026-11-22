@@ -56,3 +56,6 @@ jspm_packages/
 
 # Yarn Integrity file
 .yarn-integrity
+
+# Claude Code agent worktrees and local settings
+.claude/
