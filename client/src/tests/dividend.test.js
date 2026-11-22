@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
 import App from '../App.vue'
 import DividendSummary from '../components/DividendSummary.vue'
+import IncomeVsAllocation from '../components/IncomeVsAllocation.vue'
 import TotalGrowth from '../components/TotalGrowth.vue'
 
 beforeAll(() => {
@@ -145,6 +146,61 @@ describe('Dividend Calculations', () => {
 			expect(wrapper.text()).toContain('Share of Dividends')
 			expect(wrapper.text()).toContain('62.50%')
 			expect(wrapper.text()).toContain('+20.00%')
+		})
+
+		it('hides the yearly chart in % mode, since the growth chart already shows dividend growth', () => {
+			const wrapper = mount(DividendSummary, {
+				props: { ...percentProps, showDividendValues: true, mode: 'percent' },
+			})
+
+			expect(wrapper.find('.chart-container').exists()).toBe(false)
+			expect(wrapper.text()).toContain('Latest year vs previous')
+			expect(wrapper.text()).toContain('+20.00%')
+		})
+
+		it('shows income vs allocation by sector in % mode, with no tabs', () => {
+			const sectorIncome = [{ sector: 'Tech', income: 100, allocation: 60 }]
+			const wrapper = mount(DividendSummary, {
+				props: { ...percentProps, sectorIncome, showDividendValues: true, mode: 'percent' },
+			})
+			const incomeChart = wrapper.findComponent(IncomeVsAllocation)
+
+			expect(wrapper.find('.view-tabs').exists()).toBe(false)
+			expect(wrapper.text()).toContain('Income vs Allocation')
+			expect(incomeChart.vm.chartData.labels).toEqual(['Tech'])
+			expect(incomeChart.vm.chartData.datasets.map((d) => d.data)).toEqual([[100], [60]])
+		})
+
+		it('switches between the yearly £ chart and income by sector in £ mode', async () => {
+			const wrapper = mount(DividendSummary, {
+				props: {
+					dividends: { 2023: 100, 2024: 120 },
+					sectorIncome: [{ sector: 'Tech', income: 100, allocation: 60 }],
+					showDividendValues: true,
+					mode: 'value',
+				},
+			})
+			const tabs = wrapper.findAll('.view-tabs button')
+
+			expect(tabs.map((tab) => tab.text())).toEqual(['By year', 'By sector'])
+			expect(tabs[0].attributes('aria-selected')).toBe('true')
+			expect(wrapper.find('.chart-container').exists()).toBe(true)
+			expect(wrapper.findComponent(IncomeVsAllocation).exists()).toBe(false)
+
+			await tabs[1].trigger('click')
+			expect(tabs[1].attributes('aria-selected')).toBe('true')
+			expect(wrapper.findComponent(IncomeVsAllocation).exists()).toBe(true)
+			expect(wrapper.text()).toContain('Total: £220.00')
+		})
+
+		it('charts the £ totals in £ mode', () => {
+			const wrapper = mount(DividendSummary, {
+				props: { dividends: { 2023: 100, 2024: 120 }, showDividendValues: true, mode: 'value' },
+			})
+
+			expect(wrapper.find('.chart-container').exists()).toBe(true)
+			expect(wrapper.vm.chartData.labels).toEqual(['2023', '2024'])
+			expect(wrapper.vm.chartData.datasets[0].data).toEqual([100, 120])
 		})
 
 		it('offers a £ / % toggle when £ values are enabled', async () => {
