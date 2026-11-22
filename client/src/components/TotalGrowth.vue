@@ -17,7 +17,7 @@
 			</button>
 		</div>
 		<div class="chart-container">
-			<Line :key="chartKey" :data="chartData" :options="chartOptions" />
+			<LineChart :key="chartKey" :data="chartData" :options="chartOptions" />
 		</div>
 	</div>
 </template>
@@ -46,7 +46,7 @@ ChartJS.register(
 )
 
 export default {
-	components: { Line },
+	components: { LineChart: Line },
 	props: {
 		growth: {
 			type: Object,

@@ -294,14 +294,13 @@
 import { TIME_PERIODS, DEFAULT_PERIOD } from './constants.js'
 import { currencyNote } from './currencyNote.js'
 import SectorChart from './components/SectorChart.vue'
-import PerformanceChart from './components/PerformanceChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
 import DividendChart from './components/DividendChart.vue'
 import TotalGrowth from './components/TotalGrowth.vue'
 import axios from 'axios'
 
 export default {
-	components: { SectorChart, PerformanceChart, DividendSummary, DividendChart, TotalGrowth },
+	components: { SectorChart, DividendSummary, DividendChart, TotalGrowth },
 	data() {
 		return {
 			portfolioData: {},
@@ -402,7 +401,9 @@ export default {
 				this.dividendMode = mode
 				try {
 					localStorage.setItem('dividendMode', mode)
-				} catch (e) {}
+				} catch {
+					/* Storage can be blocked (e.g. private browsing); the setting just won't persist. */
+				}
 			},
 		},
 		dividendGrowth() {
@@ -431,7 +432,9 @@ export default {
 			const stored = localStorage.getItem('darkMode')
 			this.darkMode = stored === 'true'
 			this.dividendMode = localStorage.getItem('dividendMode') === 'value' ? 'value' : 'percent'
-		} catch (e) {}
+		} catch {
+			/* Storage can be blocked (e.g. private browsing); the setting just won't persist. */
+		}
 		await this.loadData()
 	},
 	methods: {
@@ -483,7 +486,9 @@ export default {
 		onToggleDarkMode() {
 			try {
 				localStorage.setItem('darkMode', this.darkMode)
-			} catch (e) {}
+			} catch {
+				/* Storage can be blocked (e.g. private browsing); the setting just won't persist. */
+			}
 		},
 
 		/** Format a price in its native currency (pence → pounds for .L tickers) */

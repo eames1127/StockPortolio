@@ -1,7 +1,7 @@
 <template>
 	<div class="chart-scroll">
 		<div class="chart-container">
-			<Line :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
+			<LineChart :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
 		</div>
 	</div>
 </template>
@@ -30,7 +30,7 @@ ChartJS.register(
 )
 
 export default {
-	components: { Line },
+	components: { LineChart: Line },
 	props: {
 		dividends: {
 			type: Object,

@@ -1,6 +1,6 @@
 <template>
 	<div class="chart-container">
-		<Line :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
+		<LineChart :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
 	</div>
 </template>
 
@@ -28,7 +28,7 @@ ChartJS.register(
 )
 
 export default {
-	components: { Line },
+	components: { LineChart: Line },
 	props: {
 		data: {
 			type: Object,

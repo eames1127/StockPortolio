@@ -356,6 +356,7 @@ app.get('/api/performance', (req, res) => {
 		const period = req.query.period || DEFAULT_PERIOD;
 		res.json(generatePerformance(period));
 	} catch (error) {
+		console.error('[/api/performance]', error);
 		res.status(500).json({ error: 'Failed to load performance data' });
 	}
 });

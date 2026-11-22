@@ -8,8 +8,3 @@ export const API_ENDPOINTS = {
 }
 
 export const DEFAULT_PERIOD = '1Y'
-
-// CommonJS compatibility for testing
-if (typeof module !== 'undefined' && module.exports) {
-	module.exports = { TIME_PERIODS, CHART_COLORS, API_ENDPOINTS, DEFAULT_PERIOD }
-}
