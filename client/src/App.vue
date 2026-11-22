@@ -222,6 +222,7 @@
 							v-model:mode="dividendDisplayMode"
 							:dividends="portfolioData.dividends || {}"
 							:dividend-index="portfolioData.dividendIndex || {}"
+							:sector-income="sectorIncome"
 							:dividend-yields="portfolioData.dividendYields || []"
 							:show-dividend-values="showDividendValues"
 							:converted-symbols="convertedSymbols"
@@ -294,6 +295,7 @@
 import { TIME_PERIODS, DEFAULT_PERIOD } from './constants.js'
 import { currencyNote } from './currencyNote.js'
 import { formatPrice } from './formatPrice.js'
+import { incomeVsAllocation } from './incomeVsAllocation.js'
 import SectorChart from './components/SectorChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
 import DividendChart from './components/DividendChart.vue'
@@ -420,6 +422,13 @@ export default {
 				this.dividendMode = mode
 				saveSetting('dividendMode', mode, 'dividend display mode')
 			},
+		},
+		sectorIncome() {
+			return incomeVsAllocation(
+				this.portfolioData.sectors,
+				this.portfolioData.sectorDetails,
+				this.portfolioData.dividendYields,
+			)
 		},
 		dividendGrowth() {
 			// Growth is a ratio between years, so the index gives the same result as £ totals.

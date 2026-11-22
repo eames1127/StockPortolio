@@ -26,9 +26,25 @@
 				</button>
 			</div>
 		</div>
-		<div class="chart-container">
+		<div v-if="showValues" class="view-tabs" role="tablist" aria-label="Chart dividends">
+			<button
+				v-for="tab in chartTabs"
+				:key="tab.id"
+				type="button"
+				role="tab"
+				:class="{ active: chartView === tab.id }"
+				:aria-selected="chartView === tab.id"
+				@click="chartView = tab.id"
+			>
+				{{ tab.label }}
+			</button>
+		</div>
+		<!-- A % chart by year would duplicate Dividend Growth in the yearly growth chart,
+		     so the yearly chart is £ only and % mode shows income by sector instead. -->
+		<div v-if="showValues && chartView === 'year'" class="chart-container">
 			<Bar :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
 		</div>
+		<IncomeVsAllocation v-else :rows="sectorIncome" :dark-mode="darkMode" />
 		<div class="total">
 			<span v-if="showValues">Total: £{{ totalDividends.toFixed(2) }}</span>
 			<span v-else>Latest year vs previous</span>
@@ -116,11 +132,12 @@
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Bar } from 'vue-chartjs'
+import IncomeVsAllocation from './IncomeVsAllocation.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, ChartDataLabels)
 
 export default {
-	components: { Bar },
+	components: { Bar, IncomeVsAllocation },
 	props: {
 		dividends: {
 			type: Object,
@@ -133,6 +150,11 @@ export default {
 		dividendIndex: {
 			type: Object,
 			default: () => ({}),
+		},
+		// Each sector's share of dividends and of the portfolio, from incomeVsAllocation.
+		sectorIncome: {
+			type: Array,
+			default: () => [],
 		},
 		darkMode: {
 			type: Boolean,
@@ -158,12 +180,21 @@ export default {
 		},
 	},
 	emits: ['update:mode'],
+	data() {
+		return {
+			chartView: 'year',
+			chartTabs: [
+				{ id: 'year', label: 'By year' },
+				{ id: 'sector', label: 'By sector' },
+			],
+		}
+	},
 	computed: {
 		// The server only sends £ amounts when the setting is on, so both must agree.
 		showValues() {
 			return this.showDividendValues && this.mode === 'value'
 		},
-		// Yearly series to chart: £ totals, or each year as a % of the first year.
+		// Yearly totals for the growth figure:£ totals, or each year as a % of the first year.
 		series() {
 			return this.showValues ? this.dividends : this.dividendIndex
 		},
@@ -197,12 +228,12 @@ export default {
 			return this.sortedYields.length ? Math.max(...this.sortedYields.map((h) => h.yield)) : 1
 		},
 		chartData() {
-			if (!Object.keys(this.series).length) {
+			if (!Object.keys(this.dividends).length) {
 				return { labels: [], datasets: [] }
 			}
 
-			const years = Object.keys(this.series).sort()
-			const amounts = years.map((year) => this.series[year])
+			const years = Object.keys(this.dividends).sort()
+			const amounts = years.map((year) => this.dividends[year])
 
 			return {
 				labels: years,
@@ -218,10 +249,7 @@ export default {
 		},
 		chartOptions() {
 			const textColor = this.darkMode ? '#e5e7eb' : '#0b1220'
-			const format = (value, decimals) =>
-				this.showValues
-					? `£${Number(value).toFixed(decimals)}`
-					: `${Number(value).toFixed(decimals)}%`
+			const format = (value, decimals) => `£${Number(value).toFixed(decimals)}`
 
 			return {
 				responsive: true,
@@ -320,6 +348,31 @@ export default {
 .mode-toggle button.active {
 	background: #28a745;
 	color: #fff;
+}
+
+.view-tabs {
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 1rem;
+	border-bottom: 1px solid var(--table-border);
+}
+
+.view-tabs button {
+	padding: 0.4rem 0;
+	border: none;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	background: transparent;
+	color: var(--muted-color);
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.view-tabs button.active {
+	border-bottom-color: #28a745;
+	color: var(--text-color);
 }
 
 /* Bridge App.vue tokens → legacy component tokens */
