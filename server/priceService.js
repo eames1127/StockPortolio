@@ -81,7 +81,8 @@ async function getPrices(symbols) {
   }
 
   const missing = isCacheValid()
-    ? symbols.filter(s => !(s in cache.prices))
+    // A null entry is a failed quote, so it's retried rather than trusted.
+    ? symbols.filter(s => cache.prices[s] == null)
     : symbols;
   if (missing.length === 0) {
     return cache.prices;

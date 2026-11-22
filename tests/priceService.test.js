@@ -41,3 +41,19 @@ describe('getPrices', () => {
     expect(prices.MSFT.price).toBe(100);
   });
 });
+
+describe('failed quotes', () => {
+  test('are retried on the next call instead of cached for the TTL', async () => {
+    mockQuote
+      .mockRejectedValueOnce(new Error('upstream down'))
+      .mockResolvedValueOnce(quoteFor('AAPL'));
+    const { getPrices } = loadService();
+
+    const first = await getPrices(['AAPL']);
+    expect(first.AAPL).toBeNull();
+
+    const second = await getPrices(['AAPL']);
+    expect(second.AAPL.price).toBe(100);
+    expect(mockQuote).toHaveBeenCalledTimes(2);
+  });
+});
