@@ -14,6 +14,8 @@ Before working, read:
 - `npm test`: server tests (Jest)
 - `npm run test:client`: client tests (Vitest)
 - `npm run build`: production build of the client
+- `npm run lint`: ESLint and Prettier checks (CI runs this too)
+- `npm run format`: format JS, Vue and CSS with Prettier
 
 Both test suites must pass. CI runs them on every PR to `main`. Follow [docs/styling.md](docs/styling.md) for code style.
 

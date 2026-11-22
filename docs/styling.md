@@ -2,13 +2,17 @@
 
 How code here should look and read. Write it so the maintainer can pick it up without a second look. Keep it simple (KISS).
 
-## Moving to the house style
+## Enforcement
 
-The formatting rules below are the target, and most existing files don't follow them yet. **Don't reformat code as part of an unrelated change.** Files move over gradually:
+Formatting and the mechanical rules are checked, not left to review:
 
-- **New files** use the house style from the start.
-- **Existing files** keep their current indentation and semicolon style until a change dedicated to converting that whole file. Never mix tabs and spaces in one file.
-- The non-formatting rules (simplicity, braces, comments, naming) apply to any code you write, in any file.
+- **Prettier** (`.prettierrc.json`) owns layout: tabs, quotes, semicolons and line wrapping in JS, Vue and CSS.
+- **ESLint** (`eslint.config.js`) catches bugs and enforces braces on every block, `const` over `let`, the Options API and Vue template rules.
+- `npm run lint` runs both. `npm run format` rewrites files with Prettier. The **Lint** workflow runs `npm run lint` on every PR, and a PR can't merge until it passes.
+- `.editorconfig` gives editors the same defaults. Set your editor to format with Prettier on save.
+
+Don't turn off a rule in a file to get a check passing. If a rule is wrong for this repo, change it in the config in its own PR and say why.
+
 ## How to write code
 
 - Write the simplest code that works. No abstraction, helper or config option until a second real use exists.
@@ -30,7 +34,7 @@ The formatting rules below are the target, and most existing files don't follow 
   }
   ```
 
-- Single quotes in JavaScript.
+- Single quotes in JavaScript. Semicolons in the server and tests, none in the client.
 - `const` by default, `let` only when reassigned. Use `??` and `?.` rather than long `&&` chains.
 - The server is CommonJS (`require` / `module.exports`). The client is ES modules.
 - `server/index.js` is split into sections with banners (`// ─── routes ───`). Keep new code in the right section.
