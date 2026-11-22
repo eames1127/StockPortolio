@@ -26,6 +26,7 @@
 				</button>
 			</div>
 		</div>
+		<p v-if="!showValues" class="chart-subtitle">Change on the previous year</p>
 		<div class="chart-container">
 			<Bar :key="darkMode ? 'dark' : 'light'" :data="chartData" :options="chartOptions" />
 		</div>
@@ -116,6 +117,7 @@
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Bar } from 'vue-chartjs'
+import { yearOnYearGrowth } from '../yearOnYearGrowth.js'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, ChartDataLabels)
 
@@ -163,32 +165,21 @@ export default {
 		showValues() {
 			return this.showDividendValues && this.mode === 'value'
 		},
-		// Yearly series to chart: £ totals, or each year as a % of the first year.
+		// Yearly totals:£ totals, or each year as a % of the first year.
+		totals() {
+			return (this.showValues ? this.dividends : this.dividendIndex) || {}
+		},
+		// A % of the first year reads like growth on last year, so % mode charts that instead.
 		series() {
-			return this.showValues ? this.dividends : this.dividendIndex
+			return this.showValues ? this.totals : yearOnYearGrowth(this.totals)
 		},
 		totalDividends() {
 			return Object.values(this.dividends).reduce((sum, amount) => sum + amount, 0)
 		},
 		totalDividendGrowth() {
-			const years = Object.keys(this.series || {})
-				.filter((year) => year && !Number.isNaN(Number(year)))
-				.sort((a, b) => Number(a) - Number(b))
-
-			if (years.length < 2) {
-				return null
-			}
-
+			const years = Object.keys(this.totals).sort((a, b) => Number(a) - Number(b))
 			const latestYear = years[years.length - 1]
-			const previousYear = years[years.length - 2]
-			const latestTotal = Number(this.series[latestYear]) || 0
-			const previousTotal = Number(this.series[previousYear]) || 0
-
-			if (previousTotal === 0) {
-				return null
-			}
-
-			return ((latestTotal - previousTotal) / previousTotal) * 100
+			return yearOnYearGrowth(this.totals)[latestYear] ?? null
 		},
 		sortedYields() {
 			return this.dividendYields.slice().sort((a, b) => b.yield - a.yield)
@@ -209,8 +200,9 @@ export default {
 				datasets: [
 					{
 						data: amounts,
-						backgroundColor: '#28a745',
-						borderColor: '#1e7e34',
+						// Falls are amber, matching the growth figure below the chart.
+						backgroundColor: amounts.map((value) => (value < 0 ? '#d97706' : '#28a745')),
+						borderColor: amounts.map((value) => (value < 0 ? '#b45309' : '#1e7e34')),
 						borderWidth: 1,
 					},
 				],
@@ -222,6 +214,8 @@ export default {
 				this.showValues
 					? `£${Number(value).toFixed(decimals)}`
 					: `${Number(value).toFixed(decimals)}%`
+			const formatLabel = (value, decimals) =>
+				this.showValues ? format(value, decimals) : this.formatGrowth(Number(value), decimals)
 
 			return {
 				responsive: true,
@@ -232,15 +226,16 @@ export default {
 						titleColor: textColor,
 						bodyColor: textColor,
 						callbacks: {
-							label: (context) => format(context.parsed.y, 2),
+							label: (context) => formatLabel(context.parsed.y, 2),
 						},
 					},
 					datalabels: {
 						color: textColor,
 						font: { weight: 'bold', size: 11 },
-						formatter: (value) => format(value, 0),
+						formatter: (value) => formatLabel(value, 0),
 						anchor: 'end',
-						align: 'top',
+						// Keep labels outside the bar, including bars that drop below zero.
+						align: (context) => (context.dataset.data[context.dataIndex] < 0 ? 'bottom' : 'top'),
 						offset: 4,
 					},
 				},
@@ -276,9 +271,9 @@ export default {
 			}
 			return this.yieldClass(yoc)
 		},
-		formatGrowth(value) {
+		formatGrowth(value, decimals = 2) {
 			const prefix = value > 0 ? '+' : ''
-			return `${prefix}${value.toFixed(2)}%`
+			return `${prefix}${value.toFixed(decimals)}%`
 		},
 		growthClass(value) {
 			if (value > 0) {
@@ -334,6 +329,12 @@ export default {
 .dividend-summary h3 {
 	margin-bottom: 1rem;
 	color: var(--text-color);
+}
+
+.chart-subtitle {
+	margin: -0.5rem 0 0.75rem;
+	font-size: 0.78rem;
+	color: var(--muted-color, #6b7280);
 }
 
 .chart-container {

@@ -78,7 +78,7 @@ Edit `data/portfolio.json` with your stock holdings:
 
 > **Dividend fields**: Only include `annualDividend` on stocks that pay a dividend. This should be the **total pounds received** for that holding in the year, not a per-share figure. Stocks without this field are excluded from the yield table automatically.
 
-> **Dividend amounts**: By default dividends are shown only as percentages (share of dividends per holding, and each year as a % of the first year), and the API does not send £ amounts at all. To show £ amounts, set `SHOW_DIVIDEND_VALUES=true` in `.env` and restart the server. The dividend section then gets a £ / % toggle, and the monthly/daily averages chart appears in £ mode.
+> **Dividend amounts**: By default dividends are shown only as percentages (share of dividends per holding, and each year's % change on the year before), and the API does not send £ amounts at all. To show £ amounts, set `SHOW_DIVIDEND_VALUES=true` in `.env` and restart the server. The dividend section then gets a £ / % toggle, and the monthly/daily averages chart appears in £ mode.
 
 > **UK stocks (LSE)**: Symbols ending in `.l` are automatically detected as priced in pence. Both current yield and yield on cost are adjusted accordingly — no manual conversion needed.
 
@@ -252,7 +252,7 @@ Returns mock historical performance data for charts
   - Responsive design
 
 ### DividendSummary.vue
-**Purpose**: Bar chart of annual dividends (as £ totals or as a % of the first year) plus a yield-per-holding table
+**Purpose**: Bar chart of annual dividends (as £ totals or as each year's % change on the year before, worked out from `dividendIndex`) plus a yield-per-holding table
 - **Props**: 
   - `dividends` (Object) - Yearly dividend £ totals (only sent when `SHOW_DIVIDEND_VALUES=true`)
   - `dividendIndex` (Object) - Yearly dividends as a % of the first year

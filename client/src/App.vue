@@ -294,6 +294,7 @@
 import { TIME_PERIODS, DEFAULT_PERIOD } from './constants.js'
 import { currencyNote } from './currencyNote.js'
 import { formatPrice } from './formatPrice.js'
+import { yearOnYearGrowth } from './yearOnYearGrowth.js'
 import SectorChart from './components/SectorChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
 import DividendChart from './components/DividendChart.vue'
@@ -422,24 +423,7 @@ export default {
 			},
 		},
 		dividendGrowth() {
-			// Growth is a ratio between years, so the index gives the same result as £ totals.
-			const dividendTotals = this.portfolioData.dividendIndex || {}
-			const years = Object.keys(dividendTotals).sort((a, b) => Number(a) - Number(b))
-			const growth = {}
-
-			for (let i = 1; i < years.length; i += 1) {
-				const previousYear = years[i - 1]
-				const currentYear = years[i]
-				const previousTotal = Number(dividendTotals[previousYear]) || 0
-				const currentTotal = Number(dividendTotals[currentYear]) || 0
-
-				if (previousTotal === 0) {
-					continue
-				}
-				growth[currentYear] = ((currentTotal - previousTotal) / previousTotal) * 100
-			}
-
-			return growth
+			return yearOnYearGrowth(this.portfolioData.dividendIndex || {})
 		},
 	},
 	async mounted() {

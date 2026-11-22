@@ -147,6 +147,34 @@ describe('Dividend Calculations', () => {
 			expect(wrapper.text()).toContain('+20.00%')
 		})
 
+		it('charts the change on the previous year rather than on the first year', () => {
+			const wrapper = mount(DividendSummary, {
+				props: { ...percentProps, dividendIndex: { 2019: 100, 2020: 10, 2021: 30 } },
+			})
+			const { labels, datasets } = wrapper.vm.chartData
+
+			expect(wrapper.text()).toContain('Change on the previous year')
+			expect(labels).toEqual(['2020', '2021'])
+			expect(datasets[0].data[0]).toBeCloseTo(-90)
+			expect(datasets[0].data[1]).toBeCloseTo(200)
+			expect(datasets[0].backgroundColor).toEqual(['#d97706', '#28a745'])
+			expect(wrapper.text()).toContain('+200.00%')
+		})
+
+		it('charts £ totals unchanged in value mode', () => {
+			const wrapper = mount(DividendSummary, {
+				props: {
+					dividends: { 2023: 100, 2024: 120 },
+					showDividendValues: true,
+					mode: 'value',
+				},
+			})
+
+			expect(wrapper.vm.chartData.labels).toEqual(['2023', '2024'])
+			expect(wrapper.vm.chartData.datasets[0].data).toEqual([100, 120])
+			expect(wrapper.text()).not.toContain('Change on the previous year')
+		})
+
 		it('offers a £ / % toggle when £ values are enabled', async () => {
 			const wrapper = mount(DividendSummary, {
 				props: { ...percentProps, showDividendValues: true, mode: 'percent' },
