@@ -412,6 +412,8 @@ Contributions are welcome. Before opening a pull request, read:
 
 Never include real portfolio data in issues, pull requests or tests.
 
+To report a security or privacy issue, follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
+
 ## AI Development Note
 
 🤖 This entire application was scaffolded from a single AI prompt.
