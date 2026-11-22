@@ -6,7 +6,7 @@
     "vue": "^3.5.46",
     "chart.js": "^4.4.0",
     "vue-chartjs": "^5.2.0",
-    "axios": "^1.6.2",
+    "axios": "^1.20.0",
     "chartjs-plugin-datalabels": "^2.2.0"
   },
   "devDependencies": {
