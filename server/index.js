@@ -160,12 +160,18 @@ const buildPortfolio = (data, livePrices = {}, fxRates = {}, { showDividendValue
       let rawCurrent = stock.currentPrice;
       if (liveQuote?.price != null) rawCurrent = liveQuote.price;
 
-      const currentValue = priceInPence(stock, liveQuote)
+      // annualDividend is in GBP, so values must be too. Without a rate the
+      // values come out NaN and the row is filtered out below, rather than
+      // showing a yield worked out across two currencies; the holding is
+      // already listed in unconvertedSymbols by the loop above.
+      const currency = holdingCurrency(stock, liveQuote);
+      const rate = currency === BASE_CURRENCY ? 1 : fxRates[currency];
+      const currentValue = (priceInPence(stock, liveQuote)
         ? (stock.quantity * rawCurrent) / 100
-        : stock.quantity * rawCurrent;
-      const costBasis = storedInPence(stock)
+        : stock.quantity * rawCurrent) * rate;
+      const costBasis = (storedInPence(stock)
         ? (stock.quantity * stock.purchasePrice) / 100
-        : stock.quantity * stock.purchasePrice;
+        : stock.quantity * stock.purchasePrice) * rate;
 
       const previousAnnualDividend =
         stock.previousAnnualDividend ??
