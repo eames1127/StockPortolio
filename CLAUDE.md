@@ -15,7 +15,7 @@ Before working, read:
 - `npm run test:client`: client tests (Vitest)
 - `npm run build`: production build of the client
 
-Both test suites must pass. CI runs them on every PR to `main`. Follow [docs/styling.md](docs/styling.md) for code style.
+Both test suites must pass. CI runs them and builds the client on every PR and push to `main`. Follow [docs/styling.md](docs/styling.md) for code style.
 
 ## Privacy rules
 

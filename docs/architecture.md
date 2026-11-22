@@ -57,7 +57,8 @@ App.vue — fetches the endpoints, holds dark mode and the £ / % dividend mode
 | Pure client logic | `client/src/*.js` (e.g. `currencyNote.js`) | Kept out of components so it can be unit tested |
 | Server tests | `tests/*.test.js` | Mock `yahoo-finance2` with `jest.mock`; never call the real API |
 | Client tests | `client/src/tests/*.test.js` | |
-| CI | `.github/workflows/test.yml` | Runs server and client tests on PRs to `main` |
+| CI | `.github/workflows/test.yml` | Runs server and client tests and builds the client on PRs and pushes to `main` (Node 22) |
+| Dependency updates | `.github/dependabot.yml` | Weekly grouped npm PRs for server and client, monthly for GitHub Actions |
 
 ## Currency model
 

@@ -3,6 +3,18 @@ name: Run Tests
 on:
   pull_request:
     branches: [ main ]
+  # Also run after merging, so main's own status shows whether it is green.
+  push:
+    branches: [ main ]
+
+# Tests only need to read the code. Least privilege matters on a public repo.
+permissions:
+  contents: read
+
+# A new push to a PR makes the older run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -14,7 +26,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: |
           package-lock.json
@@ -33,3 +45,6 @@ jobs:
     - name: Run client tests
       run: npm test
       working-directory: client
+
+    - name: Build client
+      run: npm run build
