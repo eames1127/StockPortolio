@@ -47,7 +47,10 @@
           </thead>
           <tbody>
             <tr v-for="holding in sortedYields" :key="holding.symbol">
-              <td class="symbol">{{ holding.companyName && holding.companyName !== holding.symbol ? `${holding.companyName} (${holding.symbol})` : holding.symbol }}</td>
+              <td class="symbol">
+                {{ holding.companyName && holding.companyName !== holding.symbol ? `${holding.companyName} (${holding.symbol})` : holding.symbol }}
+                <span v-if="convertedSymbols.includes(holding.symbol)" class="estimate-marker" role="img" aria-label="Estimate" :title="currencyNote">≈</span>
+              </td>
               <td class="amount">
                 {{ showValues ? `£${holding.annualDividend.toFixed(2)}` : `${holding.dividendShare.toFixed(2)}%` }}
               </td>
@@ -73,6 +76,8 @@
         </table>
       </div>
       <p class="yield-note">Yield on Cost ↑ means you're earning more than today's buyers</p>
+      <!-- Shown in full rather than only on hover, so touch users can read it too. -->
+      <p v-if="currencyNote" class="yield-note currency-note" role="note">{{ currencyNote }}</p>
     </div>
   </div>
 </template>
@@ -112,6 +117,15 @@ export default {
     showDividendValues: {
       type: Boolean,
       default: false
+    },
+    // Holdings whose values were converted to GBP, so their yields are estimates.
+    convertedSymbols: {
+      type: Array,
+      default: () => []
+    },
+    currencyNote: {
+      type: String,
+      default: null
     },
     mode: {
       type: String,
@@ -442,5 +456,19 @@ export default {
   margin-top: 0.6rem;
   font-size: 0.75rem;
   color: var(--muted-color, #6b7280);
+}
+
+/* Matches the estimate marker on the summary figures in App.vue. */
+.estimate-marker {
+  margin-left: 0.25rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--table-border);
+  border-radius: 4px;
+  background: var(--table-head-bg);
+  color: var(--muted-color);
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.3;
+  cursor: help;
 }
 </style>

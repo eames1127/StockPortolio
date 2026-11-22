@@ -142,6 +142,8 @@
               :dividend-index="portfolioData.dividendIndex || {}"
               :dividend-yields="portfolioData.dividendYields || []"
               :show-dividend-values="showDividendValues"
+              :converted-symbols="convertedSymbols"
+              :currency-note="currencyNote"
               :dark-mode="darkMode"
             />
           </div>
@@ -213,6 +215,13 @@ export default {
   computed: {
     currencyNote() {
       return currencyNote(this.portfolioData)
+    },
+    convertedSymbols() {
+      const base = this.portfolioData.baseCurrency || 'GBP'
+      return Object.values(this.portfolioData.sectorDetails || {})
+        .flat()
+        .filter(holding => holding.currency && holding.currency !== base)
+        .map(holding => holding.symbol)
     },
     topHolding() {
       const holdings = Object.values(this.portfolioData.sectorDetails || {}).flat()

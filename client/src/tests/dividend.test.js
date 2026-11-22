@@ -171,6 +171,48 @@ describe('Dividend Calculations', () => {
     })
   })
 
+  describe('currency estimates in the yield table', () => {
+    const props = {
+      dividendYields: [
+        { symbol: 'AAPL', companyName: 'Apple Inc.', dividendShare: 50, yield: 1.25, yieldOnCost: 2.5 },
+        { symbol: 'LLOY.L', companyName: 'Lloyds', dividendShare: 50, yield: 5, yieldOnCost: 6 }
+      ],
+      convertedSymbols: ['AAPL'],
+      currencyNote: 'Estimate: foreign holdings are converted to GBP at the latest exchange rate.'
+    }
+
+    it('marks converted holdings as estimates and explains why', () => {
+      const wrapper = mount(DividendSummary, { props })
+      const rows = wrapper.findAll('tbody tr')
+      const row = symbol => rows.find(r => r.text().includes(symbol))
+
+      expect(row('AAPL').find('.estimate-marker').exists()).toBe(true)
+      expect(row('LLOY.L').find('.estimate-marker').exists()).toBe(false)
+      expect(wrapper.find('.currency-note').text()).toContain(props.currencyNote)
+    })
+
+    it('shows no marker or note when nothing was converted', () => {
+      const wrapper = mount(DividendSummary, {
+        props: { dividendYields: props.dividendYields }
+      })
+
+      expect(wrapper.find('.estimate-marker').exists()).toBe(false)
+      expect(wrapper.find('.currency-note').exists()).toBe(false)
+    })
+
+    it('lists holdings priced in another currency as converted', () => {
+      const portfolioData = {
+        baseCurrency: 'GBP',
+        sectorDetails: {
+          Tech: [{ symbol: 'AAPL', currency: 'USD' }],
+          Banks: [{ symbol: 'LLOY.L', currency: 'GBP' }]
+        }
+      }
+
+      expect(App.computed.convertedSymbols.call({ portfolioData })).toEqual(['AAPL'])
+    })
+  })
+
   it('supports switching the annual growth chart between portfolio and dividend modes', () => {
     const wrapper = mount(TotalGrowth, {
       props: {

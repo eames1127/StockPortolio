@@ -21,7 +21,7 @@ describe('Portfolio Integration', () => {
       stocks: [
         { symbol: 'AAPL', quantity: 10, purchasePrice: 10, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
       ]
-    });
+    }, {}, { USD: 1 });
 
     const [row] = result.dividendYields;
     expect(row).not.toHaveProperty('currentValue');
@@ -35,7 +35,7 @@ describe('Portfolio Integration', () => {
       stocks: [
         { symbol: 'AAPL', quantity: 10, purchasePrice: 0, currentPrice: 20, annualDividend: 10, sector: 'Technology' }
       ]
-    });
+    }, {}, { USD: 1 });
 
     expect(result.dividendYields).toHaveLength(0);
   });
@@ -50,7 +50,7 @@ describe('Portfolio Integration', () => {
     };
 
     test('omits £ dividend amounts by default', () => {
-      const result = buildPortfolio(data);
+      const result = buildPortfolio(data, {}, { USD: 1 });
 
       expect(result.config).toEqual({ showDividendValues: false });
       expect(result).not.toHaveProperty('dividends');
@@ -61,7 +61,7 @@ describe('Portfolio Integration', () => {
     });
 
     test('always sends dividends as an index of the first year and as shares', () => {
-      const result = buildPortfolio(data);
+      const result = buildPortfolio(data, {}, { USD: 1 });
 
       expect(result.dividendIndex).toEqual({ '2022': 100, '2023': 125, '2024': 150 });
       const shares = Object.fromEntries(result.dividendYields.map(r => [r.symbol, r.dividendShare]));
@@ -70,7 +70,7 @@ describe('Portfolio Integration', () => {
     });
 
     test('includes £ dividend amounts when enabled', () => {
-      const result = buildPortfolio(data, {}, {}, { showDividendValues: true });
+      const result = buildPortfolio(data, {}, { USD: 1 }, { showDividendValues: true });
 
       expect(result.config).toEqual({ showDividendValues: true });
       expect(result.dividends).toEqual(data.dividends);

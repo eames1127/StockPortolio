@@ -39,6 +39,22 @@ describe('currency conversion', () => {
     expect(result.currencyConverted).toBe(false);
   });
 
+  test('works out per-holding dividend yields on GBP values', () => {
+    const result = buildPortfolio({ stocks }, live, { USD: 0.8 });
+    const aapl = result.dividendYields.find(row => row.symbol === 'AAPL');
+
+    // £10 dividend on £800 value (from $1,000) and £400 cost (from $500)
+    expect(aapl.yield).toBeCloseTo(10 / 800 * 100);
+    expect(aapl.yieldOnCost).toBeCloseTo(10 / 400 * 100);
+  });
+
+  test('leaves holdings without a rate out of the dividend yields', () => {
+    const result = buildPortfolio({ stocks }, live, {});
+
+    expect(result.dividendYields.map(row => row.symbol)).not.toContain('AAPL');
+    expect(result.unconvertedSymbols).toEqual(['AAPL']);
+  });
+
   test('an all-GBP portfolio needs no rates', () => {
     const result = buildPortfolio({ stocks: [stocks[1]] }, live);
     expect(result.sectors).toEqual({ Banks: '100.00' });
