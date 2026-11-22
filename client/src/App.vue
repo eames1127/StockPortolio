@@ -491,18 +491,18 @@ export default {
 			}
 		},
 
-		/** Format a price in its native currency (pence → pounds for .L tickers) */
+		/* Format a price in its native currency. Yahoo quotes LSE stocks in pence as 'GBp'. */
 		formatPrice(price, currency) {
 			if (price == null) {
 				return '–'
 			}
 			const fmt = (n) => parseFloat(n.toFixed(4)).toString()
-			if (currency === 'GBP') {
+			if (currency === 'GBp') {
 				return `£${fmt(price / 100)}`
 			}
 			const symbols = { USD: '$', GBP: '£', EUR: '€' }
 			const sym = symbols[currency] || (currency ? `${currency} ` : '')
-			return `£${fmt(price / 100)}`
+			return `${sym}${fmt(price)}`
 		},
 
 		formatQuoteLabel(symbol, quote) {
