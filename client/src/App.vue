@@ -293,11 +293,30 @@
 <script>
 import { TIME_PERIODS, DEFAULT_PERIOD } from './constants.js'
 import { currencyNote } from './currencyNote.js'
+import { formatPrice } from './formatPrice.js'
 import SectorChart from './components/SectorChart.vue'
 import DividendSummary from './components/DividendSummary.vue'
 import DividendChart from './components/DividendChart.vue'
 import TotalGrowth from './components/TotalGrowth.vue'
 import axios from 'axios'
+
+/* Storage can be blocked (e.g. private browsing), so a failure is logged and the setting just won't persist. */
+const loadSetting = (key, name) => {
+	try {
+		return localStorage.getItem(key)
+	} catch (error) {
+		console.warn(`Couldn't load the ${name} from localStorage`, error)
+		return null
+	}
+}
+
+const saveSetting = (key, value, name) => {
+	try {
+		localStorage.setItem(key, value)
+	} catch (error) {
+		console.warn(`Couldn't save the ${name} to localStorage`, error)
+	}
+}
 
 export default {
 	components: { SectorChart, DividendSummary, DividendChart, TotalGrowth },
@@ -399,11 +418,7 @@ export default {
 			},
 			set(mode) {
 				this.dividendMode = mode
-				try {
-					localStorage.setItem('dividendMode', mode)
-				} catch {
-					/* Storage can be blocked (e.g. private browsing); the setting just won't persist. */
-				}
+				saveSetting('dividendMode', mode, 'dividend display mode')
 			},
 		},
 		dividendGrowth() {
@@ -428,13 +443,9 @@ export default {
 		},
 	},
 	async mounted() {
-		try {
-			const stored = localStorage.getItem('darkMode')
-			this.darkMode = stored === 'true'
-			this.dividendMode = localStorage.getItem('dividendMode') === 'value' ? 'value' : 'percent'
-		} catch {
-			/* Storage can be blocked (e.g. private browsing); the setting just won't persist. */
-		}
+		this.darkMode = loadSetting('darkMode', 'dark mode setting') === 'true'
+		this.dividendMode =
+			loadSetting('dividendMode', 'dividend display mode') === 'value' ? 'value' : 'percent'
 		await this.loadData()
 	},
 	methods: {
@@ -484,26 +495,10 @@ export default {
 		},
 
 		onToggleDarkMode() {
-			try {
-				localStorage.setItem('darkMode', this.darkMode)
-			} catch {
-				/* Storage can be blocked (e.g. private browsing); the setting just won't persist. */
-			}
+			saveSetting('darkMode', this.darkMode, 'dark mode setting')
 		},
 
-		/* Format a price in its native currency. Yahoo quotes LSE stocks in pence as 'GBp'. */
-		formatPrice(price, currency) {
-			if (price == null) {
-				return '–'
-			}
-			const fmt = (n) => parseFloat(n.toFixed(4)).toString()
-			if (currency === 'GBp') {
-				return `£${fmt(price / 100)}`
-			}
-			const symbols = { USD: '$', GBP: '£', EUR: '€' }
-			const sym = symbols[currency] || (currency ? `${currency} ` : '')
-			return `${sym}${fmt(price)}`
-		},
+		formatPrice,
 
 		formatQuoteLabel(symbol, quote) {
 			// Build a name map from already-resolved companyNames in portfolioData
