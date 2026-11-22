@@ -22,6 +22,8 @@ A Vue.js web application for tracking stock portfolio growth and diversification
 - **Backend**: Node.js with Express, RESTful API endpoints
 - **Testing**: Jest (server) and Vitest (client) with unit test coverage
 
+For the data flow, currency handling and privacy boundary, see [docs/architecture.md](docs/architecture.md).
+
 ## Data Storage
 
 - **Stock Data**: JSON file (`data/portfolio.json`) for portfolio information (git-ignored)
@@ -383,7 +385,8 @@ Replace mock data in `data/performance.js` and update `generatePerformance()` in
 
 2. **Dividend yield table not appearing**
    - Check that at least one stock in `portfolio.json` has an `annualDividend` field greater than 0
-   - Verify `/api/portfolio` response includes a `dividendYields` array with `costBasis` present
+   - Check that the stock has a `quantity`, `purchasePrice` and current price above 0, as rows without a cost basis or value are left out
+   - Verify the `/api/portfolio` response includes a non-empty `dividendYields` array
 
 3. **UK stock yields look wrong**
    - Ensure LSE symbols end in `.l` (e.g. `Lloy.l`) so pence-to-pounds conversion is applied
@@ -398,6 +401,16 @@ Replace mock data in `data/performance.js` and update `generatePerformance()` in
 
 -  **Historical Data Persistence**: Store and track actual portfolio performance over time
 -  **Multi-Currency**: Support for international stock markets
+
+## Contributing
+
+Contributions are welcome. Before opening a pull request, read:
+
+- [docs/architecture.md](docs/architecture.md): how the API and dashboard fit together, and which file owns what
+- [docs/styling.md](docs/styling.md): code style, Vue and CSS conventions, and the visual language
+- [CLAUDE.md](CLAUDE.md): working rules for AI coding agents, which also apply to people (privacy rules, tests, branches and commits)
+
+Never include real portfolio data in issues, pull requests or tests.
 
 ## AI Development Note
 
