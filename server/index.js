@@ -27,6 +27,22 @@ const getSymbols = () => {
 };
 
 /**
+ * Whether prices stored in portfolio.json for this stock are in pence.
+ * An explicit `currency` field wins ('GBp' means pence). Without one we
+ * fall back to treating every .L ticker as pence, which is true of most
+ * LSE shares but not of GBP- or USD-quoted ETFs: give those a `currency`.
+ */
+const storedInPence = stock =>
+  stock.currency ? stock.currency === 'GBp' : stock.symbol.toLowerCase().endsWith('.l');
+
+/**
+ * Whether the price we're about to use is in pence: a live quote reports
+ * its own currency, otherwise the stored-price rule applies.
+ */
+const priceInPence = (stock, liveQuote) =>
+  liveQuote?.price != null ? liveQuote.currency === 'GBp' : storedInPence(stock);
+
+/**
  * Build the full portfolio response.
  * If livePrices is supplied (symbol → quote), currentPrice is overridden
  * with the live value; otherwise falls back to the stored price.
@@ -42,8 +58,8 @@ const buildPortfolio = (data, livePrices = {}) => {
   let totalAnnualDividends = 0;
 
   data.stocks.forEach(stock => {
-    const isPence = stock.symbol.toLowerCase().endsWith('.l');
     const liveQuote = livePrices[stock.symbol];
+    const isPence = priceInPence(stock, liveQuote);
 
     // Resolve the current price: live → stored
     let rawPrice = stock.currentPrice;
@@ -57,9 +73,9 @@ const buildPortfolio = (data, livePrices = {}) => {
     const apiShort = liveQuote?.shortName && liveQuote.shortName !== stock.symbol ? liveQuote.shortName : null
     const companyName = apiLong || apiShort || stock.name || stock.symbol;
 
-    // Yahoo Finance returns UK prices in pence; convert to pounds
     const currentPrice = isPence ? rawPrice / 100 : rawPrice;
-    const currency = isPence ? 'GBP' : (liveQuote?.currency || 'USD');
+    const quotedCurrency = liveQuote?.price != null ? liveQuote.currency : stock.currency;
+    const currency = isPence ? 'GBP' : (quotedCurrency || 'USD');
     const value = stock.quantity * currentPrice;
 
     totals[stock.sector] = (totals[stock.sector] || 0) + value;
@@ -76,7 +92,7 @@ const buildPortfolio = (data, livePrices = {}) => {
     const quantity = Number(stock.quantity);
     const purchasePrice = Number(stock.purchasePrice);
     if (Number.isFinite(quantity) && Number.isFinite(purchasePrice)) {
-      totalCostBasis += isPence ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
+      totalCostBasis += storedInPence(stock) ? (quantity * purchasePrice) / 100 : quantity * purchasePrice;
     }
     totalAnnualDividends += Number(stock.annualDividend) || 0;
   });
@@ -99,16 +115,15 @@ const buildPortfolio = (data, livePrices = {}) => {
   const dividendYields = data.stocks
     .filter(stock => stock.annualDividend && stock.annualDividend > 0)
     .map(stock => {
-      const isPence = stock.symbol.toLowerCase().endsWith('.l');
       const liveQuote = livePrices[stock.symbol];
 
       let rawCurrent = stock.currentPrice;
       if (liveQuote?.price != null) rawCurrent = liveQuote.price;
 
-      const currentValue = isPence
+      const currentValue = priceInPence(stock, liveQuote)
         ? (stock.quantity * rawCurrent) / 100
         : stock.quantity * rawCurrent;
-      const costBasis = isPence
+      const costBasis = storedInPence(stock)
         ? (stock.quantity * stock.purchasePrice) / 100
         : stock.quantity * stock.purchasePrice;
 
