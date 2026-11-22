@@ -305,6 +305,18 @@ npm run test:server
 npm run test:client
 ```
 
+### Linting and Formatting
+
+```bash
+# Check lint and formatting (CI runs this on every PR)
+npm run lint
+
+# Format JS, Vue and CSS files with Prettier
+npm run format
+```
+
+The rules are explained in [docs/styling.md](docs/styling.md).
+
 ### Test Coverage
 - **Server**: API endpoints, portfolio calculations, sector details logic, dividend calculations
 - **Client**: Utility functions, constants, component structure, dividend logic

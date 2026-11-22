@@ -1,0 +1,15 @@
+{
+  "useTabs": true,
+  "singleQuote": true,
+  "semi": true,
+  "printWidth": 100,
+  "endOfLine": "auto",
+  "overrides": [
+    {
+      "files": "client/**",
+      "options": {
+        "semi": false
+      }
+    }
+  ]
+}
