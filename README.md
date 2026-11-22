@@ -29,7 +29,7 @@ For the data flow, currency handling and privacy boundary, see [docs/architectur
 - **Stock Data**: JSON file (`data/portfolio.json`) for portfolio information (git-ignored)
 - **Template**: `data/portfolio.template.json` for setup reference (committed)
 - **Performance Data**: Mock data in `data/performance.js` (committed)
-- **Configuration**: Environment variables (.env file) for server settings
+- **Configuration**: Environment variables (`.env` file, git-ignored) for server settings, read by the API at startup
 
 ## Setup Instructions
 
@@ -82,6 +82,14 @@ Edit `data/portfolio.json` with your stock holdings:
 
 > **UK stocks (LSE)**: Symbols ending in `.l` are automatically detected as priced in pence. Both current yield and yield on cost are adjusted accordingly — no manual conversion needed.
 
+Optionally, create `.env` from the template to change the server settings
+(see [Configure the API settings](#configure-the-api-settings)). Without it,
+the API uses port 3001 and shows dividends as percentages only:
+
+```bash
+cp .env.example .env
+```
+
 ### 3. Start the Application
 
 ```bash
@@ -115,12 +123,15 @@ directory as the production site.
 
 #### Deploy the API
 
+The API server needs Node.js 22 (the version CI tests against).
+
 Copy these files and directories to the API server, keeping their relative
 layout:
 
 ```text
 package.json
 package-lock.json
+.env
 server/
   index.js
   priceService.js
@@ -134,18 +145,49 @@ Git. Transfer it securely and ensure it is present on the server; the API
 cannot load the portfolio without it. Do not copy `node_modules/` from your
 development machine.
 
+#### Configure the API settings
+
+The API reads its settings when it starts. Nothing in `.env` is compiled into
+the frontend build, so changing a setting never needs a rebuild, only an API
+restart. The frontend finds out whether £ dividend amounts are enabled from
+the API's responses.
+
+Create `.env` on the API server from the template, next to `package.json`:
+
+```bash
+cp .env.example .env
+```
+
+Then set:
+
+| Variable | Production value | Purpose |
+| --- | --- | --- |
+| `NODE_ENV` | `production` | Tells Express to run in production mode (for example, error responses don't include stack traces) |
+| `PORT` | `3001` (or your choice) | Port the API listens on; the web server must forward `/api/` here |
+| `SHOW_DIVIDEND_VALUES` | `false` unless you want £ amounts | Anything other than `true` keeps dividends as percentages only |
+
+`.env` is loaded from the directory the API is started in, so start it from
+the directory containing `package.json`. Like `data/portfolio.json`, it is
+excluded from Git: keep it readable only by the account that runs the API.
+
+Instead of a `.env` file, you can set the same variables in your process
+manager or hosting platform. Variables set there take priority over `.env`,
+so set each one in only one place to avoid confusion about which value is in
+use.
+
+#### Start the API
+
 On the API server, from the directory containing `package.json`, install
 production dependencies and start the API:
 
 ```bash
 npm ci --omit=dev
-NODE_ENV=production PORT=3001 node server/index.js
+node server/index.js
 ```
 
-Set `NODE_ENV` and `PORT` in your process manager or hosting platform for
-persistent deployments. Keep the process running with a service manager such
-as systemd or PM2, and allow the web server to reach the configured API port.
-The API does not serve the built frontend itself.
+Keep the process running with a service manager such as systemd or PM2, and
+allow the web server to reach the configured API port. The API does not serve
+the built frontend itself.
 
 #### Configure web-server routing
 
@@ -165,7 +207,10 @@ frontend API URL and configuring cross-origin access before building.
 
 After changing frontend code, run `npm run build` again and replace the
 deployed frontend files. After changing API code, deploy the changed server
-files and restart the Node.js process. `data/portfolio.json` is read for each
+files and restart the Node.js process. If `package-lock.json` has changed (for
+example after dependency updates), copy it across and run `npm ci --omit=dev`
+on the server again before restarting. After editing `.env`, restart the API
+for the change to take effect. `data/portfolio.json` is read for each
 request, so portfolio-data edits do not require an API restart; live quotes
 are cached for up to one hour unless refreshed through the API.
 
